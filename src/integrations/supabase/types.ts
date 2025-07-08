@@ -14,7 +14,266 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      access_codes: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          invitation_id: string
+          ip_address: unknown | null
+          pin_hash: string
+          qr_token: string
+          resident_id: string
+          used_at: string | null
+          user_agent: string | null
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          invitation_id: string
+          ip_address?: unknown | null
+          pin_hash: string
+          qr_token: string
+          resident_id: string
+          used_at?: string | null
+          user_agent?: string | null
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          invitation_id?: string
+          ip_address?: unknown | null
+          pin_hash?: string
+          qr_token?: string
+          resident_id?: string
+          used_at?: string | null
+          user_agent?: string | null
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_invitation"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "visit_invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_resident"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_visitor"
+            columns: ["visitor_id"]
+            isOneToOne: false
+            referencedRelation: "visitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          entity_id: string | null
+          entity_type: string | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      communities: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          id: string
+          name: string
+          phone: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+        }
+        Relationships: []
+      }
+      residents: {
+        Row: {
+          account_locked_until: string | null
+          community_id: string
+          created_at: string | null
+          email: string
+          failed_login_attempts: number | null
+          id: string
+          last_login: string | null
+          phone_encrypted: string
+          unit_number: string
+        }
+        Insert: {
+          account_locked_until?: string | null
+          community_id: string
+          created_at?: string | null
+          email: string
+          failed_login_attempts?: number | null
+          id?: string
+          last_login?: string | null
+          phone_encrypted: string
+          unit_number: string
+        }
+        Update: {
+          account_locked_until?: string | null
+          community_id?: string
+          created_at?: string | null
+          email?: string
+          failed_login_attempts?: number | null
+          id?: string
+          last_login?: string | null
+          phone_encrypted?: string
+          unit_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_community"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visit_invitations: {
+        Row: {
+          created_at: string | null
+          id: string
+          invitation_token: string
+          resident_id: string
+          status: string | null
+          token_expires_at: string
+          visit_date: string
+          visit_duration_hours: number | null
+          visit_purpose: string
+          visitor_email: string | null
+          visitor_full_name: string
+          visitor_phone: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invitation_token: string
+          resident_id: string
+          status?: string | null
+          token_expires_at: string
+          visit_date: string
+          visit_duration_hours?: number | null
+          visit_purpose: string
+          visitor_email?: string | null
+          visitor_full_name: string
+          visitor_phone: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invitation_token?: string
+          resident_id?: string
+          status?: string | null
+          token_expires_at?: string
+          visit_date?: string
+          visit_duration_hours?: number | null
+          visit_purpose?: string
+          visitor_email?: string | null
+          visitor_full_name?: string
+          visitor_phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_resident"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visitors: {
+        Row: {
+          created_at: string | null
+          data_retention_until: string | null
+          email_encrypted: string | null
+          full_name_encrypted: string
+          gdpr_consent: boolean | null
+          id: string
+          id_number_encrypted: string
+          id_number_hash: string
+          phone_encrypted: string
+          photo_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_retention_until?: string | null
+          email_encrypted?: string | null
+          full_name_encrypted: string
+          gdpr_consent?: boolean | null
+          id?: string
+          id_number_encrypted: string
+          id_number_hash: string
+          phone_encrypted: string
+          photo_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_retention_until?: string | null
+          email_encrypted?: string | null
+          full_name_encrypted?: string
+          gdpr_consent?: boolean | null
+          id?: string
+          id_number_encrypted?: string
+          id_number_hash?: string
+          phone_encrypted?: string
+          photo_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
