@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Upload, QrCode, CheckCircle, AlertCircle } from "lucide-react";
+import { Shield, Upload, CheckCircle, AlertCircle, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { QRCodeGenerator } from "@/components/QRCodeGenerator";
 
 interface InvitationData {
   id: string;
@@ -178,18 +179,50 @@ const VisitorRegistration = () => {
           </CardHeader>
           
           <CardContent className="space-y-6">
-            <div className="p-6 bg-muted rounded-lg">
-              <QrCode className="h-24 w-24 mx-auto mb-4 text-primary" />
-              <p className="text-sm text-muted-foreground">QR Code Token:</p>
-              <p className="font-mono text-sm bg-background p-2 rounded border">
-                {qrCode}
-              </p>
+            <div className="flex flex-col items-center space-y-4">
+              <QRCodeGenerator 
+                value={qrCode} 
+                size={200}
+                className="shadow-lg"
+              />
+              <div className="text-center space-y-2">
+                <p className="text-sm text-muted-foreground">QR Code Token:</p>
+                <p className="font-mono text-xs bg-background p-2 rounded border break-all">
+                  {qrCode}
+                </p>
+              </div>
             </div>
             
             <div className="text-sm text-muted-foreground space-y-2">
               <p><strong>Visitor:</strong> {invitation?.visitor_full_name}</p>
               <p><strong>Purpose:</strong> {invitation?.visit_purpose}</p>
               <p><strong>Valid Until:</strong> {new Date(invitation?.visit_date || '').toLocaleDateString()}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Button 
+                onClick={() => window.print()} 
+                variant="outline"
+                className="w-full"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Print QR Code
+              </Button>
+              <Button 
+                onClick={() => {
+                  const canvas = document.querySelector('canvas');
+                  if (canvas) {
+                    const link = document.createElement('a');
+                    link.download = 'visitor-qr-code.png';
+                    link.href = canvas.toDataURL();
+                    link.click();
+                  }
+                }}
+                className="w-full"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download QR
+              </Button>
             </div>
 
             <Alert>
@@ -310,10 +343,7 @@ const VisitorRegistration = () => {
                 {isRegistering ? (
                   "Generating Access..."
                 ) : (
-                  <>
-                    <QrCode className="mr-2 h-4 w-4" />
-                    Complete Registration
-                  </>
+                  "Complete Registration"
                 )}
               </Button>
             </form>
