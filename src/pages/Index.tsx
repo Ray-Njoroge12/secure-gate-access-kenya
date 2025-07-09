@@ -1,6 +1,7 @@
-import { Shield, Users, QrCode, Clock } from "lucide-react";
+import { Shield, Users, QrCode, Clock, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { InvitationForm } from "@/components/InvitationForm";
 import { InvitationsList } from "@/components/InvitationsList";
 
@@ -56,6 +57,41 @@ const Index = () => {
               <div className="text-2xl font-bold">2.4s</div>
               <p className="text-xs text-muted-foreground">-0.3s from last month</p>
             </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Access Links */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" 
+                onClick={() => window.open('/visitor-registration', '_blank')}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">Visitor Registration</CardTitle>
+                </div>
+                <ExternalLink className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <CardDescription>
+                Portal for visitors to register using invitation tokens
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => window.open('/security-guard', '_blank')}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">Security Interface</CardTitle>
+                </div>
+                <ExternalLink className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <CardDescription>
+                Gate access validation and QR code scanning
+              </CardDescription>
+            </CardHeader>
           </Card>
         </div>
 
