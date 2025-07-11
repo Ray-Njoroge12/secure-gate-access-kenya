@@ -1,4 +1,5 @@
 import { corsHeaders } from "@supabase_shared/cors.ts";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 
 // Basic in-memory rate limiter. Note: This is not persistent across function invocations
 // or instances in a serverless environment. For production, use a persistent store (e.g., Redis).
@@ -9,7 +10,7 @@ export function resetRateLimiter() {
   lastRequestMap.clear();
 }
 
-export async function handleCreateInvitationRequest(req: Request, supabaseClient: any, denoEnv: any): Promise<Response> {
+export async function handleCreateInvitationRequest(req: Request, supabaseClient: SupabaseClient, denoEnv: unknown): Promise<Response> {
   // This is needed if you're planning to invoke your function from a browser.
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -111,7 +112,7 @@ export async function handleCreateInvitationRequest(req: Request, supabaseClient
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 201,
     });
-  } catch (error) {
+  } catch (error: Error) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,8 +14,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserPlus, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+interface Visitor {
+  id: string;
+  full_name: string;
+  email: string;
+  phone_number: string;
+  relationship: string;
+}
+
 export function PreApprovedVisitors() {
-  const [visitors, setVisitors] = useState<any[]>([]);
+  const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -25,9 +33,9 @@ export function PreApprovedVisitors() {
 
   useEffect(() => {
     fetchPreApprovedVisitors();
-  }, []);
+  }, [fetchPreApprovedVisitors]);
 
-  const fetchPreApprovedVisitors = async () => {
+  const fetchPreApprovedVisitors = useCallback(async () => {
     setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -51,7 +59,7 @@ export function PreApprovedVisitors() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   const handleAddVisitor = async (e: React.FormEvent) => {
     e.preventDefault();

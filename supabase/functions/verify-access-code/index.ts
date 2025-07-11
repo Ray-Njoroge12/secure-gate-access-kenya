@@ -6,6 +6,13 @@ import * as argon2 from "https://deno.land/x/argon2@v1.1.0/mod.ts";
 
 const RS256_PUBLIC_KEY = Deno.env.get("RS256_PUBLIC_KEY") ?? "";
 
+interface AuditDetails {
+  code_provided: string;
+  type?: string;
+  payload?: Record<string, unknown>; // Define a more specific type if payload structure is known
+  status?: string;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -21,8 +28,8 @@ serve(async (req) => {
 
     let accessCode;
     let verification_status = "failed";
-    let audit_details: any = { code_provided: code };
-    let guard_id: string | null = null; // Placeholder for guard ID
+    const audit_details: AuditDetails = { code_provided: code };
+    const guard_id: string | null = null; // Placeholder for guard ID
 
     // In a real scenario, guard_id would be extracted from the request's authentication context (e.g., JWT)
     // For now, we'll assume it's null or passed in the request body for testing purposes if needed.

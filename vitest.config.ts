@@ -12,6 +12,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@supabase_shared/': '/supabase/functions/_shared/',
+      '@/': '/src/',
     },
   },
 });
