@@ -35,6 +35,27 @@ const Index = () => {
       }
     };
     fetchCounts();
+
+    // Real-time listener for invitations
+    const invitationChannel = supabase
+      .channel('public:visit_invitations')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'visit_invitations' },
+        (payload) => {
+          console.log('Change received!', payload);
+          toast({
+            title: "Real-time Update",
+            description: `Invitation ${payload.eventType}: ${JSON.stringify(payload.new)}`,
+          });
+          fetchCounts(); // Re-fetch counts on change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(invitationChannel);
+    };
   }, [toast]);
 
   const handleLogout = async () => {
@@ -175,9 +196,10 @@ const Index = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="invite" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="invite">Send Invitation</TabsTrigger>
             <TabsTrigger value="manage">Manage Invitations</TabsTrigger>
+            <TabsTrigger value="pre-approved">Pre-Approved Visitors</TabsTrigger>
           </TabsList>
 
           <TabsContent value="invite" className="space-y-6">
@@ -186,6 +208,10 @@ const Index = () => {
 
           <TabsContent value="manage" className="space-y-6">
             <InvitationsList />
+          </TabsContent>
+
+          <TabsContent value="pre-approved" className="space-y-6">
+            <PreApprovedVisitors />
           </TabsContent>
         </Tabs>
       </div>

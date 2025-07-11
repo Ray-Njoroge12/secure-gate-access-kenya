@@ -4,37 +4,49 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Scan, CheckCircle, XCircle } from "lucide-react";
+import { Shield, Scan, CheckCircle, XCircle, Flag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function SecurityGuardInterface() {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [validationResult, setValidationResult] = useState<any>(null);
+  const [incidentType, setIncidentType] = useState("");
+  const [incidentDescription, setIncidentDescription] = useState("");
+  const [incidentLocation, setIncidentLocation] = useState("");
+  const [isReportingIncident, setIsReportingIncident] = useState(false);
   const { toast } = useToast();
 
-  const handleVerify = async () => {
+  const handleReportIncident = async () => {
     setIsLoading(true);
-    setValidationResult(null);
-
     try {
-      const { data, error } = await supabase.functions.invoke("verify-access-code", {
-        body: { code },
-      });
-
-      if (error) {
-        throw error;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Guard not logged in.");
       }
 
-      setValidationResult(data.access_code);
-      toast({ title: "Access Granted", description: "The visitor has been verified." });
+      const { error } = await supabase.from("incidents").insert({
+        guard_id: user.id,
+        incident_type: incidentType,
+        description: incidentDescription,
+        location: incidentLocation,
+      });
+
+      if (error) throw error;
+
+      toast({ title: "Incident Reported", description: "The incident has been successfully logged." });
+      setIncidentType("");
+      setIncidentDescription("");
+      setIncidentLocation("");
+      setIsReportingIncident(false);
     } catch (error) {
-      console.error("Error verifying access code:", error);
-      setValidationResult({ error: (error as Error).message });
+      console.error("Error reporting incident:", error);
       toast({
-        title: "Access Denied",
-        description: (error as Error).message,
+        title: "Error",
+        description: (error as Error).message || "Failed to report incident.",
         variant: "destructive",
       });
     } finally {
@@ -50,7 +62,7 @@ export function SecurityGuardInterface() {
             <Shield className="h-6 w-6 text-primary" />
             Security Guard Interface
           </CardTitle>
-          <CardDescription>Verify visitor access codes.</CardDescription>
+          <CardDescription>Verify visitor access codes and report incidents.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -73,7 +85,58 @@ export function SecurityGuardInterface() {
                 </>
               )}
             </Button>
+
+            <Button
+              onClick={() => setIsReportingIncident(!isReportingIncident)}
+              variant="outline"
+              className="w-full"
+            >
+              <Flag className="mr-2 h-4 w-4" />
+              {isReportingIncident ? "Cancel Report" : "Report Incident"}
+            </Button>
           </div>
+
+          {isReportingIncident && (
+            <div className="mt-6 space-y-4 p-4 border rounded-md bg-muted">
+              <h3 className="text-lg font-semibold">Report New Incident</h3>
+              <div className="space-y-2">
+                <Label htmlFor="incidentType">Incident Type</Label>
+                <Select onValueChange={setIncidentType} value={incidentType}>
+                  <SelectTrigger id="incidentType">
+                    <SelectValue placeholder="Select incident type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unauthorized_entry">Unauthorized Entry</SelectItem>
+                    <SelectItem value="suspicious_activity">Suspicious Activity</SelectItem>
+                    <SelectItem value="visitor_issue">Visitor Issue</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="incidentLocation">Location</Label>
+                <Input
+                  id="incidentLocation"
+                  type="text"
+                  placeholder="e.g., Main Gate, Block C"
+                  value={incidentLocation}
+                  onChange={(e) => setIncidentLocation(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="incidentDescription">Description</Label>
+                <Textarea
+                  id="incidentDescription"
+                  placeholder="Provide details about the incident..."
+                  value={incidentDescription}
+                  onChange={(e) => setIncidentDescription(e.target.value)}
+                />
+              </div>
+              <Button onClick={handleReportIncident} className="w-full" disabled={isLoading}>
+                {isLoading ? "Submitting..." : "Submit Incident Report"}
+              </Button>
+            </div>
+          )}
 
           {validationResult && (
             <div className="mt-4">

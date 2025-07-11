@@ -30,6 +30,10 @@ const App = () => (
           <Route path="/security-guard" element={<SecurityGuardInterface />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route
+            path="/admin"
+            element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} // Protect admin route
+          />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

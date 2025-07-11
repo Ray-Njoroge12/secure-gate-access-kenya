@@ -33,6 +33,16 @@ export function LoginForm() {
         throw error;
       }
 
+      // TODO: Implement 2FA challenge here if enabled for the user
+      // For example, if (data.user.app_metadata.requires_mfa) {
+      //   navigate("/mfa-challenge");
+      // } else {
+      //   toast({
+      //     title: "Logged In!",
+      //     description: "You have successfully logged in.",
+      //   });
+      // }
+
       toast({
         title: "Logged In!",
         description: "You have successfully logged in.",
