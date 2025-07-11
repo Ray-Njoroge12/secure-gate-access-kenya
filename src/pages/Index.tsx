@@ -1,4 +1,4 @@
-import { Shield, Users, QrCode, Clock, ExternalLink } from "lucide-react";
+import { Shield, Users, QrCode, Clock, ExternalLink, BarChart, User } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ const Index = () => {
         </div>
 
         {/* Quick Access Links */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card className="hover:shadow-md transition-shadow cursor-pointer" 
                 onClick={() => window.open('/visitor-registration', '_blank')}>
             <CardHeader className="pb-3">
@@ -90,6 +90,38 @@ const Index = () => {
               </div>
               <CardDescription>
                 Gate access validation and QR code scanning
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => window.open('/analytics', '_blank')}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">Analytics Dashboard</CardTitle>
+                </div>
+                <ExternalLink className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <CardDescription>
+                Monitor system performance and visitor statistics
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => window.open('/auth', '_blank')}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">Resident Portal</CardTitle>
+                </div>
+                <ExternalLink className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <CardDescription>
+                Sign in to manage your invitations and account
               </CardDescription>
             </CardHeader>
           </Card>
