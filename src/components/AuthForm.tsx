@@ -42,6 +42,17 @@ export function AuthForm() {
 
       if (error) throw error;
 
+      // TODO: Implement 2FA challenge here if enabled for the user
+      // For example, if (data.user.app_metadata.requires_mfa) {
+      //   navigate("/mfa-challenge");
+      // } else {
+      //   toast({
+      //     title: "Welcome back!",
+      //     description: "You have been signed in successfully.",
+      //   });
+      //   navigate("/");
+      // }
+
       toast({
         title: "Welcome back!",
         description: "You have been signed in successfully.",

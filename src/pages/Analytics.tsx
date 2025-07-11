@@ -14,6 +14,7 @@ import {
   Activity,
   AlertTriangle 
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface AnalyticsData {
   totalInvitations: number;
@@ -22,6 +23,8 @@ interface AnalyticsData {
   pendingInvitations: number;
   visitsByPurpose: { name: string; value: number; percentage: number }[];
   averageStayDuration: number;
+  dailyTraffic: { date: string; count: number }[];
+  hourlyTraffic: { hour: string; count: number }[];
 }
 
 export default function Analytics() {
@@ -31,7 +34,9 @@ export default function Analytics() {
     completedVisits: 0,
     pendingInvitations: 0,
     visitsByPurpose: [],
-    averageStayDuration: 0
+    averageStayDuration: 0,
+    dailyTraffic: [],
+    hourlyTraffic: [],
   });
   const [loading, setLoading] = useState(true);
 
@@ -61,6 +66,23 @@ export default function Analytics() {
       const activeVisitors = accessCodes?.filter(code => !code.used_at && new Date(code.expires_at) > new Date()).length || 0;
       const completedVisits = accessCodes?.filter(code => code.used_at).length || 0;
 
+      // Calculate daily traffic
+      const dailyTrafficMap = new Map<string, number>();
+      invitations?.forEach(inv => {
+        const date = new Date(inv.visit_date).toISOString().split('T')[0];
+        dailyTrafficMap.set(date, (dailyTrafficMap.get(date) || 0) + 1);
+      });
+      const dailyTraffic = Array.from(dailyTrafficMap.entries()).map(([date, count]) => ({ date, count })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      // Calculate hourly traffic (for today's visits, as an example)
+      const hourlyTrafficMap = new Map<string, number>();
+      const today = new Date().toISOString().split('T')[0];
+      accessCodes?.filter(code => new Date(code.used_at).toISOString().split('T')[0] === today).forEach(code => {
+        const hour = new Date(code.used_at).getHours().toString().padStart(2, '0') + ':00';
+        hourlyTrafficMap.set(hour, (hourlyTrafficMap.get(hour) || 0) + 1);
+      });
+      const hourlyTraffic = Array.from(hourlyTrafficMap.entries()).map(([hour, count]) => ({ hour, count })).sort((a, b) => a.hour.localeCompare(b.hour));
+
       // Group visits by purpose
       const purposeGroups = invitations?.reduce((acc: any, inv) => {
         acc[inv.visit_purpose] = (acc[inv.visit_purpose] || 0) + 1;
@@ -79,13 +101,56 @@ export default function Analytics() {
         completedVisits,
         pendingInvitations,
         visitsByPurpose,
-        averageStayDuration: 3.5 // hours - calculate from actual data
+        averageStayDuration: 3.5, // hours - calculate from actual data
+        dailyTraffic,
+        hourlyTraffic,
       });
 
     } catch (error) {
       console.error('Error fetching analytics:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExportCsv = () => {
+    const headers = ["Metric", "Value"];
+    const rows = [
+      ["Total Invitations", analytics.totalInvitations],
+      ["Active Visitors", analytics.activeVisitors],
+      ["Completed Visits", analytics.completedVisits],
+      ["Pending Invitations", analytics.pendingInvitations],
+      ["Average Stay Duration (hours)", analytics.averageStayDuration],
+    ];
+
+    analytics.visitsByPurpose.forEach(purpose => {
+      rows.push([`Visits by Purpose: ${purpose.name}`, `${purpose.value} (${purpose.percentage}%)`]);
+    });
+
+    analytics.dailyTraffic.forEach(data => {
+      rows.push([`Daily Traffic: ${data.date}`, data.count]);
+    });
+
+    analytics.hourlyTraffic.forEach(data => {
+      rows.push([`Hourly Traffic: ${data.hour}`, data.count]);
+    });
+
+    let csvContent = headers.join(",") + "\n";
+    rows.forEach(rowArray => {
+      let row = rowArray.join(",");
+      csvContent += row + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", "analytics_report.csv");
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 
@@ -105,10 +170,15 @@ export default function Analytics() {
             <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
             <p className="text-muted-foreground">Monitor visitor management system performance</p>
           </div>
-          <Badge variant="secondary" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Live Data
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleExportCsv} variant="outline">
+              Export CSV
+            </Button>
+            <Badge variant="secondary" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Live Data
+            </Badge>
+          </div>
         </div>
 
         {/* Key Metrics */}
@@ -228,42 +298,34 @@ export default function Analytics() {
                   <CardTitle className="text-lg">Peak Hours</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">9:00 AM - 11:00 AM</span>
-                      <Badge variant="secondary">Peak</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">2:00 PM - 4:00 PM</span>
-                      <Badge variant="outline">High</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">6:00 PM - 8:00 PM</span>
-                      <Badge variant="outline">Moderate</Badge>
-                    </div>
-                  </div>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={analytics.hourlyTraffic}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="hour" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="count" fill="#8884d8" name="Visits" />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Weekly Trends</CardTitle>
+                  <CardTitle className="text-lg">Daily Traffic</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Monday</span>
-                      <span className="text-sm font-medium">15 visits</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Wednesday</span>
-                      <span className="text-sm font-medium">22 visits</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Saturday</span>
-                      <span className="text-sm font-medium">31 visits</span>
-                    </div>
-                  </div>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={analytics.dailyTraffic}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="count" fill="#82ca9d" name="Visits" />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </CardContent>
               </Card>
 
