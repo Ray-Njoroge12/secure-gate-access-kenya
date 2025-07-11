@@ -7,6 +7,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import VisitorRegistration from "./pages/VisitorRegistration";
 import SecurityGuardInterface from "./pages/SecurityGuardInterface";
+import Auth from "./pages/Auth";
+import Analytics from "./pages/Analytics";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +22,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/visitor-registration" element={<VisitorRegistration />} />
           <Route path="/security-guard" element={<SecurityGuardInterface />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/analytics" element={<Analytics />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

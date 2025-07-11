@@ -49,6 +49,7 @@ export function InvitationForm() {
     visitDuration: "4"
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [sendEmail, setSendEmail] = useState(true);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -95,10 +96,51 @@ export function InvitationForm() {
 
       if (error) throw error;
 
-      toast({
-        title: "Invitation Sent!",
-        description: `Invitation sent to ${formData.visitorName}. Token: ${invitationToken}`,
-      });
+      // Send email notification if requested and email provided
+      if (sendEmail && formData.visitorEmail) {
+        try {
+          const registrationUrl = `${window.location.origin}/visitor-registration`;
+          
+          const { error: emailError } = await supabase.functions.invoke('send-invitation-email', {
+            body: {
+              visitorName: formData.visitorName,
+              visitorEmail: formData.visitorEmail,
+              residentName: 'Resident Name', // TODO: Get from authenticated user
+              residentUnit: 'Unit Number', // TODO: Get from authenticated user
+              visitDate: formData.visitDate.toISOString(),
+              visitPurpose: formData.visitPurpose,
+              invitationToken: invitationToken,
+              registrationUrl: registrationUrl
+            }
+          });
+
+          if (emailError) {
+            console.error('Email sending failed:', emailError);
+            toast({
+              title: "Invitation Created",
+              description: `Invitation created but email failed. Token: ${invitationToken}`,
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Invitation Sent!",
+              description: `Invitation email sent to ${formData.visitorName}`,
+            });
+          }
+        } catch (emailError) {
+          console.error('Email sending failed:', emailError);
+          toast({
+            title: "Invitation Created", 
+            description: `Invitation created. Share this token: ${invitationToken}`,
+            variant: "destructive"
+          });
+        }
+      } else {
+        toast({
+          title: "Invitation Created!",
+          description: `Share this token with ${formData.visitorName}: ${invitationToken}`,
+        });
+      }
 
       // Reset form
       setFormData({
@@ -239,6 +281,29 @@ export function InvitationForm() {
                 />
               </PopoverContent>
             </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="sendEmail"
+                checked={sendEmail}
+                onChange={(e) => setSendEmail(e.target.checked)}
+                className="rounded border-input"
+                disabled={!formData.visitorEmail}
+              />
+              <Label htmlFor="sendEmail" className="text-sm flex items-center gap-2">
+                <Send className="h-4 w-4" />
+                Send invitation email to visitor
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {!formData.visitorEmail 
+                ? "Email address required to send invitation email" 
+                : "If unchecked, you'll need to share the invitation token manually"
+              }
+            </p>
           </div>
 
           <Button 
