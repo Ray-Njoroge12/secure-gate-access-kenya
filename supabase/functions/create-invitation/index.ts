@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -16,7 +15,23 @@ serve(async (req) => {
       { global: { headers: { Authorization: req.headers.get("Authorization")! } } }
     );
 
-    const { resident_id, visitor_email, visit_date } = await req.json();
+    const { resident_id, visitor_full_name, visitor_email, visitor_phone_number, visit_date } = await req.json();
+
+    // Encrypt PII using the encrypt-pii function
+    const { data: encryptedData, error: encryptError } = await supabase.functions.invoke(
+      "encrypt-pii",
+      {
+        body: {
+          fullName: visitor_full_name,
+          phoneNumber: visitor_phone_number,
+          visitorEmail: visitor_email,
+        },
+      }
+    );
+
+    if (encryptError) {
+      throw encryptError;
+    }
 
     // 1. Generate a secure, unique, and time-limited invitation token.
     const invitation_token = crypto.randomUUID();
@@ -30,7 +45,10 @@ serve(async (req) => {
         invitation_token,
         token_expires_at,
         status: "pending",
-        visit_date, // Add visit_date here
+        visit_date,
+        visitor_full_name_encrypted: encryptedData.encryptedFullName, // Store encrypted
+        visitor_phone_encrypted: encryptedData.encryptedPhoneNumber, // Store encrypted
+        visitor_email_encrypted: encryptedData.encryptedVisitorEmail, // Store encrypted
       })
       .select();
 
@@ -39,11 +57,13 @@ serve(async (req) => {
     }
 
     // 3. Send an email to the visitor with a link containing the invitation token.
+    // Pass unencrypted details for email content, assuming send-invitation-email handles it.
     const { data: emailData, error: emailError } = await supabase.functions.invoke(
       "send-invitation-email",
       {
         body: {
           visitor_email,
+          visitor_full_name,
           invitation_token,
         },
       }

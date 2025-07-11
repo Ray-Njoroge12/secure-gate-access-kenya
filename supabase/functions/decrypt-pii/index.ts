@@ -1,13 +1,15 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const ENCRYPTION_KEY = Deno.env.get("APP_ENCRYPTION_KEY");
 
-async function decrypt(encryptedData: Uint8Array): Promise<string> {
+async function decrypt(encryptedBase64Data: string): Promise<string> {
   if (!ENCRYPTION_KEY) {
     throw new Error("Encryption key is not set.");
   }
+
+  // Convert Base64 string to Uint8Array
+  const encryptedData = new Uint8Array(atob(encryptedBase64Data).split('').map(char => char.charCodeAt(0)));
 
   const key = await crypto.subtle.importKey(
     "raw",
@@ -35,13 +37,19 @@ serve(async (req) => {
   }
 
   try {
-    const { encryptedEmail } = await req.json();
+    const { encryptedFullName, encryptedIdNumber, encryptedPhoneNumber, encryptedVisitorEmail } = await req.json();
 
-    const decryptedEmail = await decrypt(new Uint8Array(encryptedEmail));
+    const decryptedFullName = encryptedFullName ? await decrypt(encryptedFullName) : undefined;
+    const decryptedIdNumber = encryptedIdNumber ? await decrypt(encryptedIdNumber) : undefined;
+    const decryptedPhoneNumber = encryptedPhoneNumber ? await decrypt(encryptedPhoneNumber) : undefined;
+    const decryptedVisitorEmail = encryptedVisitorEmail ? await decrypt(encryptedVisitorEmail) : undefined;
 
     return new Response(
       JSON.stringify({
-        decryptedEmail,
+        decryptedFullName,
+        decryptedIdNumber,
+        decryptedPhoneNumber,
+        decryptedVisitorEmail,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

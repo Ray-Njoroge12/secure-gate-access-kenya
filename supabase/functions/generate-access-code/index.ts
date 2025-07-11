@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -20,14 +19,10 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { visitor_id, resident_id, invitation_id, visitor_email } = await req.json();
+    const { visitor_id, resident_id, visitor_email } = await req.json();
 
     // 1. Generate a cryptographically secure 6-digit PIN
-    const pin = Array.from(crypto.getRandomValues(new Uint8Array(3)))
-      .map(n => n % 10)
-      .join('') + Array.from(crypto.getRandomValues(new Uint8Array(3)))
-      .map(n => n % 10)
-      .join('');
+    const pin = Math.floor(100000 + Math.random() * 900000).toString();
 
     // 2. Hash the PIN using Argon2id
     const pin_hash = await argon2.hash(pin);
@@ -37,6 +32,7 @@ serve(async (req) => {
       throw new Error("RS256_PRIVATE_KEY is not set.");
     }
 
+    // Assuming RS256_PRIVATE_KEY is a valid PKCS8 PEM string
     const privateKey = await crypto.subtle.importKey(
       "pkcs8",
       new TextEncoder().encode(RS256_PRIVATE_KEY),
@@ -48,7 +44,7 @@ serve(async (req) => {
       ["sign"]
     );
 
-    const qr_token = await new SignJWT({ visitor_id, resident_id, invitation_id })
+    const qr_token = await new SignJWT({ visitor_id, resident_id })
       .setProtectedHeader({ alg: "RS256" })
       .setIssuedAt()
       .setExpirationTime('24h') // 24 hours expiration
@@ -61,7 +57,6 @@ serve(async (req) => {
       .insert({
         visitor_id,
         resident_id,
-        invitation_id,
         pin_hash,
         qr_token,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
