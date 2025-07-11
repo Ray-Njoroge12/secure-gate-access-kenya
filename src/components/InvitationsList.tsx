@@ -2,30 +2,30 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Mail, Phone, User, MapPin } from "lucide-react";
+import { Calendar, Clock, Mail, User, QrCode } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import QRCode from "react-qr-code";
 
 interface Invitation {
   id: string;
-  visitor_full_name: string;
-  visitor_phone: string;
-  visitor_email: string | null;
-  visit_purpose: string;
-  visit_date: string;
-  visit_duration_hours: number;
-  invitation_token: string;
-  token_expires_at: string;
   status: string;
   created_at: string;
+  visit_date: string;
+  visitors: {
+    full_name: string;
+    id_number: string;
+    phone_number: string;
+  } | null;
+  access_codes: { qr_token: string }[];
 }
 
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-800",
-  accepted: "bg-green-100 text-green-800", 
+  accepted: "bg-green-100 text-green-800",
   expired: "bg-red-100 text-red-800",
-  cancelled: "bg-gray-100 text-gray-800"
+  cancelled: "bg-gray-100 text-gray-800",
 };
 
 export function InvitationsList() {
@@ -39,19 +39,16 @@ export function InvitationsList() {
 
   const fetchInvitations = async () => {
     try {
-      const { data, error } = await supabase
-        .from('visit_invitations')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.functions.invoke("get-resident-invitations");
 
       if (error) throw error;
       setInvitations(data || []);
     } catch (error) {
-      console.error('Error fetching invitations:', error);
+      console.error("Error fetching invitations:", error);
       toast({
         title: "Error",
         description: "Failed to load invitations",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -61,35 +58,26 @@ export function InvitationsList() {
   const cancelInvitation = async (id: string) => {
     try {
       const { error } = await supabase
-        .from('visit_invitations')
-        .update({ status: 'cancelled' })
-        .eq('id', id);
+        .from("visit_invitations")
+        .update({ status: "cancelled" })
+        .eq("id", id);
 
       if (error) throw error;
-      
+
       toast({
         title: "Invitation Cancelled",
-        description: "The invitation has been cancelled successfully"
+        description: "The invitation has been cancelled successfully",
       });
-      
+
       fetchInvitations();
     } catch (error) {
-      console.error('Error cancelling invitation:', error);
+      console.error("Error cancelling invitation:", error);
       toast({
-        title: "Error", 
+        title: "Error",
         description: "Failed to cancel invitation",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
-  };
-
-  const copyInvitationLink = (token: string) => {
-    const link = `${window.location.origin}/visitor-registration?token=${token}`;
-    navigator.clipboard.writeText(link);
-    toast({
-      title: "Link Copied",
-      description: "Invitation link has been copied to clipboard"
-    });
   };
 
   if (isLoading) {
@@ -115,86 +103,42 @@ export function InvitationsList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Recent Invitations</h3>
-        <Badge variant="secondary">{invitations.length} total</Badge>
-      </div>
-
       {invitations.map((invitation) => (
-        <Card key={invitation.id} className="hover:shadow-md transition-shadow">
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
-                  <User className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">{invitation.visitor_full_name}</CardTitle>
-                  <CardDescription className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    {invitation.visit_purpose}
-                  </CardDescription>
-                </div>
+        <Card key={invitation.id}>
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle>{invitation.visitors?.full_name || "Pending Registration"}</CardTitle>
+                <CardDescription>
+                  Invited on {format(new Date(invitation.created_at), "PPP")}
+                </CardDescription>
               </div>
-              <Badge 
-                className={statusColors[invitation.status as keyof typeof statusColors]}
-                variant="secondary"
-              >
-                {invitation.status.toUpperCase()}
+              <Badge className={statusColors[invitation.status as keyof typeof statusColors]}>
+                {invitation.status}
               </Badge>
             </div>
           </CardHeader>
-
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{invitation.visitor_phone}</span>
-              </div>
-              
-              {invitation.visitor_email && (
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span>{invitation.visitor_email}</span>
-                </div>
-              )}
-              
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span>{format(new Date(invitation.visit_date), "PPP")}</span>
               </div>
-              
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span>{invitation.visit_duration_hours} hours</span>
-              </div>
+              {invitation.status === "accepted" && invitation.access_codes && invitation.access_codes.length > 0 && (
+                <div className="p-2 bg-white rounded-lg">
+                  <QRCode value={invitation.access_codes[0].qr_token} size={64} />
+                </div>
+              )}
             </div>
-
-            <div className="flex items-center justify-between pt-3 border-t">
-              <div className="text-xs text-muted-foreground">
-                Created {format(new Date(invitation.created_at), "PPP 'at' p")}
-              </div>
-              
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyInvitationLink(invitation.invitation_token)}
-                >
-                  Copy Link
-                </Button>
-                
-                {invitation.status === 'pending' && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => cancelInvitation(invitation.id)}
-                  >
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </div>
+            {invitation.status === "pending" && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => cancelInvitation(invitation.id)}
+              >
+                Cancel Invitation
+              </Button>
+            )}
           </CardContent>
         </Card>
       ))}
