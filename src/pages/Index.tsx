@@ -8,6 +8,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 
+interface Invitation {
+  status: string;
+  access_codes: unknown[]; // Further refinement of access_codes type can be done if needed
+}
+
 const Index = () => {
   const { toast } = useToast();
   const [activeInvitationsCount, setActiveInvitationsCount] = useState(0);
@@ -20,8 +25,8 @@ const Index = () => {
         if (error) throw error;
 
         const invitations = data || [];
-        const active = invitations.filter((inv: any) => inv.status === "pending" || inv.status === "accepted").length;
-        const qrGenerated = invitations.filter((inv: any) => inv.access_codes && inv.access_codes.length > 0).length;
+        const active = invitations.filter((inv: Invitation) => inv.status === "pending" || inv.status === "accepted").length;
+        const qrGenerated = invitations.filter((inv: Invitation) => inv.access_codes && inv.access_codes.length > 0).length;
 
         setActiveInvitationsCount(active);
         setQrCodesGeneratedCount(qrGenerated);

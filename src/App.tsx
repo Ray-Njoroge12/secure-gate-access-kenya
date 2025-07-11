@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import VisitorRegistration from "./pages/VisitorRegistration";
+import { VisitorRegistration } from "./pages/VisitorRegistration";
 import SecurityGuardInterface from "./pages/SecurityGuardInterface";
 import Auth from "./pages/Auth";
 import Analytics from "./pages/Analytics";

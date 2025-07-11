@@ -10,10 +10,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+interface ValidationResult {
+  error?: string;
+  visitors?: {
+    full_name: string;
+    id_number: string;
+    phone_number: string;
+  };
+  residents?: {
+    email: string;
+    communities: {
+      name: string;
+    };
+  };
+}
+
 export function SecurityGuardInterface() {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [validationResult, setValidationResult] = useState<any>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [incidentType, setIncidentType] = useState("");
   const [incidentDescription, setIncidentDescription] = useState("");
   const [incidentLocation, setIncidentLocation] = useState("");

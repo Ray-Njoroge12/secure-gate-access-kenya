@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,37 +7,63 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+interface SystemSetting {
+  setting_name: string;
+  setting_value: string | number;
+}
+
+interface Settings {
+  [key: string]: string | number;
+}
+
+interface AuthUser {
+  banned_until: string | null;
+}
+
+interface Resident {
+  id: string;
+  email: string;
+  role: string;
+  auth_users: AuthUser[];
+}
+
+interface Guard {
+  id: string;
+  email: string;
+  auth_users: AuthUser[];
+}
+
 const AdminDashboard = () => {
   const { toast } = useToast();
-  const [residents, setResidents] = useState([]);
-  const [guards, setGuards] = useState([]);
+  const [residents, setResidents] = useState<Resident[]>([]);
+  const [guards, setGuards] = useState<Guard[]>([]);
   const [newResidentEmail, setNewResidentEmail] = useState("");
   const [newResidentPassword, setNewResidentPassword] = useState("");
   const [newGuardEmail, setNewGuardEmail] = useState("");
   const [newGuardPassword, setNewGuardPassword] = useState("");
-  const [settings, setSettings] = useState<any>({});
+  const [settings, setSettings] = useState<Settings>({});
 
   useEffect(() => {
     fetchUsers();
     fetchSettings();
-  }, []);
+  }, [fetchUsers, fetchSettings]);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     const { data, error } = await supabase.from("system_settings").select("setting_name, setting_value");
     if (error) {
       console.error("Error fetching settings:", error);
       toast({ title: "Error", description: "Failed to fetch system settings", variant: "destructive" });
     } else {
-      const fetchedSettings: { [key: string]: any } = {};
-      data.forEach((s: any) => {
+      const fetchedSettings: Settings = {};
+      data.forEach((s: SystemSetting) => {
         fetchedSettings[s.setting_name] = s.setting_value;
       });
       setSettings(fetchedSettings);
     }
-  };
+  }, [toast]);
 
-  const handleSettingChange = (name: string, value: any) => {
-    setSettings((prev: any) => ({
+  const handleSettingChange = (name: string, value: string | number) => {
+    setSettings((prev: Settings) => ({
       ...prev,
       [name]: value,
     }));
@@ -61,7 +87,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     // Fetch residents (example: assuming residents are users with a specific role or metadata)
     const { data: residentData, error: residentError } = await supabase
       .from("profiles") // Assuming a profiles table linked to auth.users
@@ -86,7 +112,7 @@ const AdminDashboard = () => {
     } else {
       setGuards(guardData);
     }
-  };
+  }, [toast]);
 
   const handleAddResident = async () => {
     if (!newResidentEmail || !newResidentPassword) {
@@ -184,7 +210,7 @@ const AdminDashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {residents.map((resident: any) => (
+                {residents.map((resident: Resident) => (
                   <TableRow key={resident.id}>
                     <TableCell>{resident.id}</TableCell>
                     <TableCell>{resident.email}</TableCell>
@@ -244,7 +270,7 @@ const AdminDashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {guards.map((guard: any) => (
+                {guards.map((guard: Guard) => (
                   <TableRow key={guard.id}>
                     <TableCell>{guard.id}</TableCell>
                     <TableCell>{guard.email}</TableCell>

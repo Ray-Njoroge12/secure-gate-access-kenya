@@ -84,7 +84,7 @@ export default function Analytics() {
       const hourlyTraffic = Array.from(hourlyTrafficMap.entries()).map(([hour, count]) => ({ hour, count })).sort((a, b) => a.hour.localeCompare(b.hour));
 
       // Group visits by purpose
-      const purposeGroups = invitations?.reduce((acc: any, inv) => {
+      const purposeGroups = invitations?.reduce((acc: { [key: string]: number }, inv) => {
         acc[inv.visit_purpose] = (acc[inv.visit_purpose] || 0) + 1;
         return acc;
       }, {}) || {};
@@ -136,8 +136,8 @@ export default function Analytics() {
     });
 
     let csvContent = headers.join(",") + "\n";
-    rows.forEach(rowArray => {
-      let row = rowArray.join(",");
+    rows.forEach((rowArray: string[]) => {
+      const row = rowArray.join(",");
       csvContent += row + "\n";
     });
 
