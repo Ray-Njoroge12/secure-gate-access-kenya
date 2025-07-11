@@ -85,18 +85,35 @@ export function AuthForm() {
 
       // Create resident profile
       if (data.user) {
+        // Encrypt phone number before storing
+        const { data: encryptedData, error: encryptionError } = await supabase.functions.invoke(
+          "encrypt-pii",
+          {
+            body: { phoneNumber: formData.phone },
+          }
+        );
+
+        if (encryptionError) {
+          throw encryptionError;
+        }
+
         const { error: profileError } = await supabase
           .from('residents')
           .insert({
             id: data.user.id,
             email: formData.email,
             unit_number: formData.unitNumber,
-            phone_encrypted: formData.phone, // In production, encrypt this
+            phone_encrypted: encryptedData.encryptedPhoneNumber,
             community_id: 'default-community-id', // You'd get this from a community selection
           });
 
         if (profileError) {
           console.error('Profile creation error:', profileError);
+          toast({
+            title: "Profile creation failed",
+            description: profileError.message,
+            variant: "destructive",
+          });
         }
       }
     } catch (error: any) {

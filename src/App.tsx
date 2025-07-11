@@ -9,6 +9,8 @@ import VisitorRegistration from "./pages/VisitorRegistration";
 import SecurityGuardInterface from "./pages/SecurityGuardInterface";
 import Auth from "./pages/Auth";
 import Analytics from "./pages/Analytics";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { LoginForm } from "./components/LoginForm";
 
 const queryClient = new QueryClient();
 
@@ -19,7 +21,11 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/login" element={<LoginForm />} />
+          <Route
+            path="/"
+            element={<ProtectedRoute><Index /></ProtectedRoute>}
+          />
           <Route path="/visitor-registration" element={<VisitorRegistration />} />
           <Route path="/security-guard" element={<SecurityGuardInterface />} />
           <Route path="/auth" element={<Auth />} />

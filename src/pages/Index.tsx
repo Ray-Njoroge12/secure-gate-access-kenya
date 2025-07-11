@@ -1,24 +1,70 @@
-import { Shield, Users, QrCode, Clock, ExternalLink, BarChart, User } from "lucide-react";
+import { Shield, Users, QrCode, Clock, ExternalLink, BarChart, User, LogOut } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { InvitationForm } from "@/components/InvitationForm";
 import { InvitationsList } from "@/components/InvitationsList";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState } from "react";
 
 const Index = () => {
+  const { toast } = useToast();
+  const [activeInvitationsCount, setActiveInvitationsCount] = useState(0);
+  const [qrCodesGeneratedCount, setQrCodesGeneratedCount] = useState(0);
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("get-resident-invitations");
+        if (error) throw error;
+
+        const invitations = data || [];
+        const active = invitations.filter((inv: any) => inv.status === "pending" || inv.status === "accepted").length;
+        const qrGenerated = invitations.filter((inv: any) => inv.access_codes && inv.access_codes.length > 0).length;
+
+        setActiveInvitationsCount(active);
+        setQrCodesGeneratedCount(qrGenerated);
+      } catch (error) {
+        console.error("Error fetching counts:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data",
+          variant: "destructive",
+        });
+      }
+    };
+    fetchCounts();
+  }, [toast]);
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      toast({ title: "Logged Out", description: "You have been successfully logged out." });
+    } catch (error) {
+      toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       {/* Header */}
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground">
-              <Shield className="h-6 w-6" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground">
+                <Shield className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">SecureGate Kenya</h1>
+                <p className="text-muted-foreground">Digital Visitor Management for Gated Communities</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold">SecureGate Kenya</h1>
-              <p className="text-muted-foreground">Digital Visitor Management for Gated Communities</p>
-            </div>
+            <Button variant="outline" size="icon" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
@@ -32,8 +78,8 @@ const Index = () => {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">12</div>
-              <p className="text-xs text-muted-foreground">+2 from yesterday</p>
+              <div className="text-2xl font-bold">{activeInvitationsCount}</div>
+              <p className="text-xs text-muted-foreground">Active invitations</p>
             </CardContent>
           </Card>
 
@@ -43,8 +89,8 @@ const Index = () => {
               <QrCode className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">45</div>
-              <p className="text-xs text-muted-foreground">+12% from last week</p>
+              <div className="text-2xl font-bold">{qrCodesGeneratedCount}</div>
+              <p className="text-xs text-muted-foreground">QR codes generated</p>
             </CardContent>
           </Card>
 
