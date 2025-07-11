@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
@@ -11,7 +10,7 @@ serve(async (req) => {
   }
 
   try {
-    const { visitor_email, invitation_token } = await req.json();
+    const { visitor_email, visitor_full_name, invitation_token } = await req.json();
 
     if (!SENDGRID_API_KEY || !FROM_EMAIL) {
       throw new Error("Missing SendGrid configuration.");
@@ -27,7 +26,7 @@ serve(async (req) => {
         {
           type: "text/html",
           value: `
-            <p>Hello,</p>
+            <p>Hello ${visitor_full_name || ''},</p>
             <p>You have been invited to visit our community.</p>
             <p>Please click the link below to complete your registration and receive your secure access code. This link will expire in 24 hours.</p>
             <p><a href="${registration_url}" style="display: inline-block; padding: 10px 20px; font-size: 16px; color: #fff; background-color: #007bff; text-decoration: none; border-radius: 5px;">Register Now</a></p>

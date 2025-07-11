@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
@@ -35,6 +34,15 @@ async function encrypt(data: string): Promise<string> {
   return btoa(String.fromCharCode(...result));
 }
 
+async function hashSha256(data: string): Promise<string> {
+  const textEncoder = new TextEncoder();
+  const dataBuffer = textEncoder.encode(data);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hexHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hexHash;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -45,6 +53,7 @@ serve(async (req) => {
 
     const encryptedFullName = fullName ? await encrypt(fullName) : undefined;
     const encryptedIdNumber = idNumber ? await encrypt(idNumber) : undefined;
+    const idNumberHash = idNumber ? await hashSha256(idNumber) : undefined; // Add SHA-256 hash
     const encryptedPhoneNumber = phoneNumber ? await encrypt(phoneNumber) : undefined;
     const encryptedVisitorEmail = visitorEmail ? await encrypt(visitorEmail) : undefined;
 
@@ -52,6 +61,7 @@ serve(async (req) => {
       JSON.stringify({
         encryptedFullName,
         encryptedIdNumber,
+        idNumberHash, // Return the hash
         encryptedPhoneNumber,
         encryptedVisitorEmail,
       }),

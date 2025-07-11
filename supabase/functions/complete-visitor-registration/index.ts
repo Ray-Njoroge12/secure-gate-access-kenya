@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -27,7 +26,7 @@ serve(async (req) => {
       throw new Error("Invalid or expired invitation token.");
     }
 
-    // 2. Encrypt PII
+    // 2. Encrypt PII and hash ID number
     const { data: encryptedData, error: encryptionError } = await supabase.functions.invoke(
       "encrypt-pii",
       {
@@ -39,23 +38,13 @@ serve(async (req) => {
       throw encryptionError;
     }
 
-    let idNumberHash;
-    try {
-      idNumberHash = await crypto.subtle.digest(
-          "SHA-256",
-          new TextEncoder().encode(idNumber)
-      ).then(buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join(''));
-    } catch (hashError) {
-      throw new Error(`Failed to hash ID number: ${hashError.message}`);
-    }
-
     // 3. Create a new visitor
     const { data: visitor, error: visitorError } = await supabase
       .from("visitors")
       .insert({
         full_name_encrypted: encryptedData.encryptedFullName,
         id_number_encrypted: encryptedData.encryptedIdNumber,
-        id_number_hash: idNumberHash, 
+        id_number_hash: encryptedData.idNumberHash, // Use the hash from encrypt-pii
         phone_encrypted: encryptedData.encryptedPhoneNumber,
         email_encrypted: encryptedData.encryptedVisitorEmail, // Store encrypted email
         photo_url: photoUrl, // Store photo URL
@@ -86,7 +75,6 @@ serve(async (req) => {
         body: {
           visitor_id: visitor.id,
           resident_id: invitation.resident_id,
-          invitation_id: invitation.id,
           visitor_email: visitorEmail, // Pass the original visitor email
         },
       }

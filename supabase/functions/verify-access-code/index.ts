@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -23,6 +22,21 @@ serve(async (req) => {
     let accessCode;
     let verification_status = "failed";
     let audit_details: any = { code_provided: code };
+    let guard_id: string | null = null; // Placeholder for guard ID
+
+    // In a real scenario, guard_id would be extracted from the request's authentication context (e.g., JWT)
+    // For now, we'll assume it's null or passed in the request body for testing purposes if needed.
+    // const authHeader = req.headers.get("Authorization");
+    // if (authHeader && authHeader.startsWith("Bearer ")) {
+    //   const token = authHeader.substring(7);
+    //   // Decode JWT to get guard_id (sub claim)
+    //   // This requires verifying the guard's JWT with their public key
+    //   // For simplicity, assuming guard_id is available from auth.uid() if using Supabase Auth directly
+    //   const { data: { user } } = await supabase.auth.getUser(token);
+    //   if (user) {
+    //     guard_id = user.id;
+    //   }
+    // }
 
     try {
       // Check if the code is a JWT (QR code)
@@ -70,30 +84,23 @@ serve(async (req) => {
 
       } else {
         // Assume the code is a PIN
-        // Hash the provided PIN to compare with stored hashes
-        let pin_hash_to_check;
-        try {
-          pin_hash_to_check = await argon2.hash(code); // Hash the input PIN
-        } catch (hashError) {
-          throw new Error(`Failed to hash PIN: ${hashError.message}`);
-        }
-
         const { data: fetchedAccessCode, error: fetchError } = await supabase
           .from("access_codes")
           .select("*, visitors(*), residents(*, communities(*))")
-          .eq("pin_hash", pin_hash_to_check) // Query directly by hashed PIN
+          .eq("used_at", null) // Only consider unused codes
+          .gte("expires_at", new Date().toISOString()) // Only consider unexpired codes
+          .limit(1) // Limit to one result for efficiency
           .single();
 
         if (fetchError || !fetchedAccessCode) {
+          throw new Error("Invalid PIN or PIN not found.");
+        }
+
+        // Verify the provided PIN against the stored hash
+        const isPinValid = await argon2.verify(fetchedAccessCode.pin_hash, code);
+
+        if (!isPinValid) {
           throw new Error("Invalid PIN.");
-        }
-
-        if (fetchedAccessCode.used_at) {
-          throw new Error("This PIN has already been used.");
-        }
-
-        if (new Date(fetchedAccessCode.expires_at) < new Date()) {
-          throw new Error("This PIN has expired.");
         }
 
         accessCode = fetchedAccessCode;
@@ -119,7 +126,7 @@ serve(async (req) => {
           event_type: "ACCESS_VERIFICATION",
           entity_id: accessCode?.id || null,
           entity_type: "access_code",
-          user_id: null, // Guard ID would go here
+          user_id: guard_id, // Guard ID
           ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || req.headers.get("client-ip"),
           user_agent: req.headers.get("user-agent"),
           details: { ...audit_details, status: verification_status },

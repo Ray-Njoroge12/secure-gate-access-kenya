@@ -14,8 +14,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Send, UserPlus } from "lucide-react";
 
 export function InvitationForm() {
+  const [visitorFullName, setVisitorFullName] = useState("");
   const [visitorEmail, setVisitorEmail] = useState("");
-  const [visitDate, setVisitDate] = useState(""); // New state for visit date
+  const [visitorPhoneNumber, setVisitorPhoneNumber] = useState("");
+  const [visitDate, setVisitDate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -34,7 +36,9 @@ export function InvitationForm() {
       const { error } = await supabase.functions.invoke("create-invitation", {
         body: {
           resident_id: user.id,
+          visitor_full_name: visitorFullName,
           visitor_email: visitorEmail,
+          visitor_phone_number: visitorPhoneNumber,
           visit_date: visitDate,
         },
       });
@@ -47,7 +51,10 @@ export function InvitationForm() {
         title: "Invitation Sent!",
         description: `An invitation has been sent to ${visitorEmail}.`,
       });
+      setVisitorFullName("");
       setVisitorEmail("");
+      setVisitorPhoneNumber("");
+      setVisitDate("");
     } catch (error) {
       console.error("Error sending invitation:", error);
       toast({
@@ -70,7 +77,7 @@ export function InvitationForm() {
           <div>
             <CardTitle>Invite a Visitor</CardTitle>
             <CardDescription>
-              Enter the visitor's email to send them a secure registration
+              Enter the visitor's details to send them a secure registration
               link.
             </CardDescription>
           </div>
@@ -79,6 +86,17 @@ export function InvitationForm() {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
+            <Label htmlFor="visitorFullName">Visitor's Full Name</Label>
+            <Input
+              id="visitorFullName"
+              type="text"
+              placeholder="John Doe"
+              value={visitorFullName}
+              onChange={(e) => setVisitorFullName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="visitorEmail">Visitor's Email Address</Label>
             <Input
               id="visitorEmail"
@@ -86,6 +104,17 @@ export function InvitationForm() {
               placeholder="visitor@example.com"
               value={visitorEmail}
               onChange={(e) => setVisitorEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="visitorPhoneNumber">Visitor's Phone Number</Label>
+            <Input
+              id="visitorPhoneNumber"
+              type="tel"
+              placeholder="+2547XXXXXXXX"
+              value={visitorPhoneNumber}
+              onChange={(e) => setVisitorPhoneNumber(e.target.value)}
               required
             />
           </div>
