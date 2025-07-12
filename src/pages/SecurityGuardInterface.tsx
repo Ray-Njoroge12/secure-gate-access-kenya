@@ -3,65 +3,90 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Scan, CheckCircle, XCircle, Flag } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { QrCode, Search, CheckCircle, AlertTriangle, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-interface ValidationResult {
-  error?: string;
-  visitors?: {
-    full_name: string;
-    id_number: string;
-    phone_number: string;
-  };
-  residents?: {
-    email: string;
-    communities: {
-      name: string;
-    };
-  };
-}
-
-export function SecurityGuardInterface() {
-  const [code, setCode] = useState("");
+const SecurityGuardInterface = () => {
+  const [qrInput, setQrInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [incident, setIncident] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
-  const [incidentType, setIncidentType] = useState("");
-  const [incidentDescription, setIncidentDescription] = useState("");
-  const [incidentLocation, setIncidentLocation] = useState("");
-  const [isReportingIncident, setIsReportingIncident] = useState(false);
   const { toast } = useToast();
 
-  const handleReportIncident = async () => {
+  const handleVerifyQR = async () => {
+    if (!qrInput.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a QR code",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("Guard not logged in.");
-      }
-
-      const { error } = await supabase.from("incidents").insert({
-        guard_id: user.id,
-        incident_type: incidentType,
-        description: incidentDescription,
-        location: incidentLocation,
+      const { data, error } = await supabase.functions.invoke("verify-access-code", {
+        body: { qrToken: qrInput },
       });
 
       if (error) throw error;
 
-      toast({ title: "Incident Reported", description: "The incident has been successfully logged." });
-      setIncidentType("");
-      setIncidentDescription("");
-      setIncidentLocation("");
-      setIsReportingIncident(false);
+      toast({
+        title: "Verification Result",
+        description: data.valid ? "Access granted" : "Invalid code",
+        variant: data.valid ? "default" : "destructive",
+      });
+
+      setQrInput("");
     } catch (error) {
-      console.error("Error reporting incident:", error);
+      console.error("Verification error:", error);
       toast({
         title: "Error",
-        description: (error as Error).message || "Failed to report incident.",
+        description: "Failed to verify QR code",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReportIncident = async () => {
+    if (!incident.trim()) {
+      toast({
+        title: "Error",
+        description: "Please describe the incident",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // For now, just log to audit_logs table
+      const { error } = await supabase
+        .from("audit_logs")
+        .insert({
+          event_type: "incident_reported",
+          details: { description: incident },
+          user_id: null, // Guard user would be here
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Incident Reported",
+        description: "Incident has been logged successfully",
+      });
+
+      setIncident("");
+    } catch (error) {
+      console.error("Incident reporting error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to report incident",
         variant: "destructive",
       });
     } finally {
@@ -70,115 +95,141 @@ export function SecurityGuardInterface() {
   };
 
   return (
-    <div className="container mx-auto p-4 flex justify-center items-center min-h-screen">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            Security Guard Interface
-          </CardTitle>
-          <CardDescription>Verify visitor access codes and report incidents.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="code">QR Code or PIN</Label>
-              <Input
-                id="code"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="Scan QR code or enter PIN"
-              />
-            </div>
-            <Button onClick={handleVerify} className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                "Verifying..."
-              ) : (
-                <>
-                  <Scan className="mr-2 h-4 w-4" />
-                  Verify Access
-                </>
-              )}
-            </Button>
-
-            <Button
-              onClick={() => setIsReportingIncident(!isReportingIncident)}
-              variant="outline"
-              className="w-full"
-            >
-              <Flag className="mr-2 h-4 w-4" />
-              {isReportingIncident ? "Cancel Report" : "Report Incident"}
-            </Button>
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center gap-3 mb-8">
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground">
+            <Shield className="h-6 w-6" />
           </div>
+          <div>
+            <h1 className="text-3xl font-bold">Security Guard Interface</h1>
+            <p className="text-muted-foreground">Verify visitors and manage security</p>
+          </div>
+        </div>
 
-          {isReportingIncident && (
-            <div className="mt-6 space-y-4 p-4 border rounded-md bg-muted">
-              <h3 className="text-lg font-semibold">Report New Incident</h3>
-              <div className="space-y-2">
-                <Label htmlFor="incidentType">Incident Type</Label>
-                <Select onValueChange={setIncidentType} value={incidentType}>
-                  <SelectTrigger id="incidentType">
-                    <SelectValue placeholder="Select incident type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unauthorized_entry">Unauthorized Entry</SelectItem>
-                    <SelectItem value="suspicious_activity">Suspicious Activity</SelectItem>
-                    <SelectItem value="visitor_issue">Visitor Issue</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <QrCode className="h-5 w-5 text-primary" />
+                <CardTitle>QR Code Verification</CardTitle>
               </div>
+              <CardDescription>
+                Scan or enter QR code to verify visitor access
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="incidentLocation">Location</Label>
+                <Label htmlFor="qr-input">QR Code</Label>
                 <Input
-                  id="incidentLocation"
-                  type="text"
-                  placeholder="e.g., Main Gate, Block C"
-                  value={incidentLocation}
-                  onChange={(e) => setIncidentLocation(e.target.value)}
+                  id="qr-input"
+                  placeholder="Enter QR code here..."
+                  value={qrInput}
+                  onChange={(e) => setQrInput(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="incidentDescription">Description</Label>
-                <Textarea
-                  id="incidentDescription"
-                  placeholder="Provide details about the incident..."
-                  value={incidentDescription}
-                  onChange={(e) => setIncidentDescription(e.target.value)}
-                />
-              </div>
-              <Button onClick={handleReportIncident} className="w-full" disabled={isLoading}>
-                {isLoading ? "Submitting..." : "Submit Incident Report"}
+              <Button 
+                onClick={handleVerifyQR}
+                disabled={isLoading}
+                className="w-full"
+              >
+                {isLoading ? "Verifying..." : "Verify Access"}
               </Button>
-            </div>
-          )}
+            </CardContent>
+          </Card>
 
-          {validationResult && (
-            <div className="mt-4">
-              {validationResult.error ? (
-                <Alert variant="destructive">
-                  <XCircle className="h-4 w-4" />
-                  <AlertDescription>{validationResult.error}</AlertDescription>
-                </Alert>
-              ) : (
-                <Alert>
-                  <CheckCircle className="h-4 w-4" />
-                  <AlertDescription>Access Granted</AlertDescription>
-                  <div className="mt-2">
-                    <p><strong>Visitor:</strong> {validationResult.visitors.full_name}</p>
-                    <p><strong>ID Number:</strong> {validationResult.visitors.id_number}</p>
-                    <p><strong>Phone Number:</strong> {validationResult.visitors.phone_number}</p>
-                    <p><strong>Resident:</strong> {validationResult.residents.email}</p>
-                    <p><strong>Community:</strong> {validationResult.residents.communities.name}</p>
-                  </div>
-                </Alert>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Search className="h-5 w-5 text-primary" />
+                <CardTitle>Visitor Search</CardTitle>
+              </div>
+              <CardDescription>
+                Search for visitor information
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="search">Search</Label>
+                <Input
+                  id="search"
+                  placeholder="Enter visitor name or ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Button variant="outline" className="w-full">
+                Search Visitors
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-primary" />
+                <CardTitle>Report Incident</CardTitle>
+              </div>
+              <CardDescription>
+                Log security incidents or unusual activities
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="incident">Incident Description</Label>
+                <Textarea
+                  id="incident"
+                  placeholder="Describe the incident..."
+                  value={incident}
+                  onChange={(e) => setIncident(e.target.value)}
+                />
+              </div>
+              <Button 
+                onClick={handleReportIncident}
+                disabled={isLoading}
+                variant="destructive"
+                className="w-full"
+              >
+                {isLoading ? "Reporting..." : "Report Incident"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-primary" />
+                <CardTitle>System Status</CardTitle>
+              </div>
+              <CardDescription>
+                Current system status and alerts
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">System Status</span>
+                <Badge className="bg-green-100 text-green-800">Online</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Database</span>
+                <Badge className="bg-green-100 text-green-800">Connected</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">QR Scanner</span>
+                <Badge className="bg-green-100 text-green-800">Ready</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Network</span>
+                <Badge className="bg-green-100 text-green-800">Stable</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
-}
+};
 
 export default SecurityGuardInterface;

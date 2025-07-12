@@ -59,7 +59,7 @@ export function AuthForm() {
       });
 
       navigate("/");
-    } catch (error: Error) {
+    } catch (error: any) {
       toast({
         title: "Sign in failed",
         description: error.message,
@@ -127,7 +127,7 @@ export function AuthForm() {
           });
         }
       }
-    } catch (error: Error) {
+    } catch (error: any) {
       toast({
         title: "Sign up failed",
         description: error.message,

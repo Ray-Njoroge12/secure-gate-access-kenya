@@ -5,6 +5,8 @@ import { toggleVariants } from "@/lib/toggleVariants"
 
 import { cn } from "@/lib/utils"
 
+export { toggleVariants }
+
 
 
 const Toggle = React.forwardRef<
