@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import Analytics from "./pages/Analytics";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginForm } from "./components/LoginForm";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
