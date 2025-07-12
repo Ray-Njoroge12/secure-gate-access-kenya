@@ -12,6 +12,7 @@ import Analytics from "./pages/Analytics";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginForm } from "./components/LoginForm";
 import AdminDashboard from "./pages/AdminDashboard";
+import ResidentDashboard from "./pages/ResidentDashboard";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,10 @@ const App = () => (
           <Route
             path="/admin"
             element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} // Protect admin route
+          />
+          <Route
+            path="/resident-dashboard"
+            element={<ProtectedRoute requiredRole="resident"><ResidentDashboard /></ProtectedRoute>}
           />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

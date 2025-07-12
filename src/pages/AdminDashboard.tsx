@@ -34,6 +34,48 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleResetPassword = async (userId: string) => {
+    try {
+      const { error } = await supabase.functions.invoke("reset-user-password", {
+        body: { userId },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Password reset email sent successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+      console.error("Error resetting password:", error);
+    }
+  };
+
+  const handleCleanOldInvitations = async () => {
+    try {
+      const { error } = await supabase.functions.invoke("clean-old-invitations");
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Old invitations cleaned successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+      console.error("Error cleaning old invitations:", error);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
@@ -70,6 +112,9 @@ const AdminDashboard = () => {
               </Button>
               <Button variant="outline" className="w-full">
                 Backup Data
+              </Button>
+              <Button variant="destructive" className="w-full" onClick={handleCleanOldInvitations}>
+                Clean Old Invitations
               </Button>
             </div>
           </CardContent>
