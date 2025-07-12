@@ -1,333 +1,76 @@
-import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-interface SystemSetting {
-  setting_name: string;
-  setting_value: string | number;
-}
-
-interface Settings {
-  [key: string]: string | number;
-}
-
-interface AuthUser {
-  banned_until: string | null;
-}
-
-interface Resident {
-  id: string;
-  email: string;
-  role: string;
-  auth_users: AuthUser[];
-}
-
-interface Guard {
-  id: string;
-  email: string;
-  auth_users: AuthUser[];
-}
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminDashboard = () => {
   const { toast } = useToast();
-  const [residents, setResidents] = useState<Resident[]>([]);
-  const [guards, setGuards] = useState<Guard[]>([]);
-  const [newResidentEmail, setNewResidentEmail] = useState("");
-  const [newResidentPassword, setNewResidentPassword] = useState("");
-  const [newGuardEmail, setNewGuardEmail] = useState("");
-  const [newGuardPassword, setNewGuardPassword] = useState("");
-  const [settings, setSettings] = useState<Settings>({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-    fetchSettings();
-  }, [fetchUsers, fetchSettings]);
-
-  const fetchSettings = useCallback(async () => {
-    const { data, error } = await supabase.from("system_settings").select("setting_name, setting_value");
-    if (error) {
-      console.error("Error fetching settings:", error);
-      toast({ title: "Error", description: "Failed to fetch system settings", variant: "destructive" });
-    } else {
-      const fetchedSettings: Settings = {};
-      data.forEach((s: SystemSetting) => {
-        fetchedSettings[s.setting_name] = s.setting_value;
-      });
-      setSettings(fetchedSettings);
-    }
-  }, [toast]);
-
-  const handleSettingChange = (name: string, value: string | number) => {
-    setSettings((prev: Settings) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSaveSettings = async () => {
+  const handleTestDatabase = async () => {
+    setIsLoading(true);
     try {
-      for (const settingName in settings) {
-        const { error } = await supabase
-          .from("system_settings")
-          .upsert(
-            { setting_name: settingName, setting_value: settings[settingName] },
-            { onConflict: "setting_name" }
-          );
-        if (error) throw error;
-      }
-      toast({ title: "Success", description: "System settings saved successfully." });
-    } catch (error) {
-      toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
-      console.error("Error saving settings:", error);
-    }
-  };
-
-  const fetchUsers = useCallback(async () => {
-    // Fetch residents (example: assuming residents are users with a specific role or metadata)
-    const { data: residentData, error: residentError } = await supabase
-      .from("profiles") // Assuming a profiles table linked to auth.users
-      .select("id, email, role, auth_users(banned_until)")
-      .eq("role", "resident");
-
-    if (residentError) {
-      toast({ title: "Error", description: "Failed to fetch residents", variant: "destructive" });
-      console.error("Error fetching residents:", residentError);
-    } else {
-      setResidents(residentData);
-    }
-
-    // Fetch guards (example: assuming guards are users with a specific role or from a guards table)
-    const { data: guardData, error: guardError } = await supabase
-      .from("guards") // Assuming a dedicated guards table
-      .select("id, email, auth_users(banned_until)");
-
-    if (guardError) {
-      toast({ title: "Error", description: "Failed to fetch guards", variant: "destructive" });
-      console.error("Error fetching guards:", guardError);
-    } else {
-      setGuards(guardData);
-    }
-  }, [toast]);
-
-  const handleAddResident = async () => {
-    if (!newResidentEmail || !newResidentPassword) {
-      toast({ title: "Error", description: "Email and password are required for new resident.", variant: "destructive" });
-      return;
-    }
-    try {
-      const { data, error } = await supabase.functions.invoke("add-resident", {
-        body: { email: newResidentEmail, password: newResidentPassword, role: "resident" },
-      });
+      const { data, error } = await supabase
+        .from("visit_invitations")
+        .select("*")
+        .limit(5);
 
       if (error) throw error;
 
-      toast({ title: "Success", description: "Resident added successfully." });
-      setNewResidentEmail("");
-      setNewResidentPassword("");
-      fetchUsers();
-    } catch (error) {
-      toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
-      console.error("Error adding resident:", error);
-    }
-  };
-
-  const handleAddGuard = async () => {
-    if (!newGuardEmail || !newGuardPassword) {
-      toast({ title: "Error", description: "Email and password are required for new guard.", variant: "destructive" });
-      return;
-    }
-    try {
-      const { data, error } = await supabase.functions.invoke("add-guard", {
-        body: { email: newGuardEmail, password: newGuardPassword, role: "guard" },
+      toast({
+        title: "Database Connection",
+        description: `Successfully connected! Found ${data?.length || 0} invitations.`,
       });
-
-      if (error) throw error;
-
-      toast({ title: "Success", description: "Guard added successfully." });
-      setNewGuardEmail("");
-      setNewGuardPassword("");
-      fetchUsers();
     } catch (error) {
-      toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
-      console.error("Error adding guard:", error);
-    }
-  };
-
-  const handleToggleUserStatus = async (userId: string, currentStatus: boolean) => {
-    try {
-      const { data, error } = await supabase.functions.invoke("update-user-status", {
-        body: { userId, active: !currentStatus },
+      console.error("Database test error:", error);
+      toast({
+        title: "Database Error",
+        description: "Failed to connect to database",
+        variant: "destructive",
       });
-
-      if (error) throw error;
-
-      toast({ title: "Success", description: `User status updated to ${!currentStatus ? 'active' : 'inactive'}.` });
-      fetchUsers(); // Re-fetch users to update the list
-    } catch (error) {
-      toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
-      console.error("Error toggling user status:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Resident Management */}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Manage Residents</CardTitle>
+            <CardTitle>System Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex space-x-2 mb-4">
-              <Input
-                placeholder="New resident email"
-                value={newResidentEmail}
-                onChange={(e) => setNewResidentEmail(e.target.value)}
-              />
-              <Input
-                type="password"
-                placeholder="Password"
-                value={newResidentPassword}
-                onChange={(e) => setNewResidentPassword(e.target.value)}
-              />
-              <Button onClick={handleAddResident}>Add Resident</Button>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {residents.map((resident: Resident) => (
-                  <TableRow key={resident.id}>
-                    <TableCell>{resident.id}</TableCell>
-                    <TableCell>{resident.email}</TableCell>
-                    <TableCell>{resident.role}</TableCell>
-                    <TableCell>{resident.auth_users[0]?.banned_until ? 'Inactive' : 'Active'}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant={resident.auth_users[0]?.banned_until ? 'default' : 'destructive'}
-                        size="sm"
-                        onClick={() => handleToggleUserStatus(resident.id, !resident.auth_users[0]?.banned_until)}
-                      >
-                        {resident.auth_users[0]?.banned_until ? 'Activate' : 'Deactivate'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="ml-2"
-                        onClick={() => handleResetPassword(resident.id)}
-                      >
-                        Reset Password
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <p className="text-muted-foreground mb-4">
+              Basic admin dashboard for visitor management system.
+            </p>
+            <Button 
+              onClick={handleTestDatabase} 
+              disabled={isLoading}
+            >
+              {isLoading ? "Testing..." : "Test Database Connection"}
+            </Button>
           </CardContent>
         </Card>
 
-        {/* Guard Management */}
         <Card>
           <CardHeader>
-            <CardTitle>Manage Security Guards</CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex space-x-2 mb-4">
-              <Input
-                placeholder="New guard email"
-                value={newGuardEmail}
-                onChange={(e) => setNewGuardEmail(e.target.value)}
-              />
-              <Input
-                type="password"
-                placeholder="Password"
-                value={newGuardPassword}
-                onChange={(e) => setNewGuardPassword(e.target.value)}
-              />
-              <Button onClick={handleAddGuard}>Add Guard</Button>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {guards.map((guard: Guard) => (
-                  <TableRow key={guard.id}>
-                    <TableCell>{guard.id}</TableCell>
-                    <TableCell>{guard.email}</TableCell>
-                    <TableCell>{guard.auth_users[0]?.banned_until ? 'Inactive' : 'Active'}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant={guard.auth_users[0]?.banned_until ? 'default' : 'destructive'}
-                        size="sm"
-                        onClick={() => handleToggleUserStatus(guard.id, !guard.auth_users[0]?.banned_until)}
-                      >
-                        {guard.auth_users[0]?.banned_until ? 'Activate' : 'Deactivate'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="ml-2"
-                        onClick={() => handleResetPassword(guard.id)}
-                      >
-                        Reset Password
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* System Settings */}
-      <div className="mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>System Settings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="invitation-expiry">Invitation Expiry (Days)</Label>
-                <Input
-                  id="invitation-expiry"
-                  type="number"
-                  value={settings.invitation_expiry_days || ''}
-                  onChange={(e) => handleSettingChange('invitation_expiry_days', parseInt(e.target.value))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="pii-retention">PII Retention (Days)</Label>
-                <Input
-                  id="pii-retention"
-                  type="number"
-                  value={settings.pii_retention_days || ''}
-                  onChange={(e) => handleSettingChange('pii_retention_days', parseInt(e.target.value))}
-                />
-              </div>
-              <Button onClick={handleSaveSettings}>Save Settings</Button>
-              <Button onClick={handleCleanOldInvitations} className="ml-2">Clean Old Invitations</Button>
+            <div className="space-y-2">
+              <Button variant="outline" className="w-full">
+                View All Invitations
+              </Button>
+              <Button variant="outline" className="w-full">
+                System Reports
+              </Button>
+              <Button variant="outline" className="w-full">
+                Backup Data
+              </Button>
             </div>
           </CardContent>
         </Card>

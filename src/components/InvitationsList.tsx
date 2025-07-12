@@ -33,10 +33,6 @@ export function InvitationsList() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchInvitations();
-  }, [fetchInvitations]);
-
   const fetchInvitations = useCallback(async () => {
     try {
       const { data, error } = await supabase.functions.invoke("get-resident-invitations");
@@ -54,6 +50,10 @@ export function InvitationsList() {
       setIsLoading(false);
     }
   }, [toast]);
+
+  useEffect(() => {
+    fetchInvitations();
+  }, [fetchInvitations]);
 
   const cancelInvitation = async (id: string) => {
     try {

@@ -216,7 +216,11 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="pre-approved" className="space-y-6">
-            <PreApprovedVisitors />
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center h-32 text-center">
+                <p className="text-muted-foreground">Pre-approved visitors feature coming soon</p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
