@@ -8,6 +8,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*.test.tsx', 'src/**/*.test.ts', 'supabase/functions/**/*.test.ts'],
+    testTimeout: 30000,
   },
   resolve: {
     alias: {

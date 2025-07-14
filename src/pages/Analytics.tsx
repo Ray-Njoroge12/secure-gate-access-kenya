@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,9 +17,9 @@ const Analytics = () => {
 
   useEffect(() => {
     fetchAnalytics();
-  }, []);
+  }, [fetchAnalytics]);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("visit_invitations")
@@ -45,7 +45,7 @@ const Analytics = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
 
   const handleExportCsv = () => {
     toast({
