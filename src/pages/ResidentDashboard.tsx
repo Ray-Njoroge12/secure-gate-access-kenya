@@ -1,6 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import InvitationForm from "@/components/InvitationForm";
-import InvitationsList from "@/components/InvitationsList";
+import { InvitationForm } from "@/components/InvitationForm";
+import { InvitationsList } from "@/components/InvitationsList";
 import PreApprovedVisitors from "@/components/PreApprovedVisitors";
 
 const ResidentDashboard = () => {
