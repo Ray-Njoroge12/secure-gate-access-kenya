@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,6 +19,7 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +49,9 @@ export function LoginForm() {
         title: "Logged In!",
         description: "You have successfully logged in.",
       });
+      
+      // Navigate to dashboard
+      navigate("/");
     } catch (error) {
       console.error("Error logging in:", error);
       toast({
