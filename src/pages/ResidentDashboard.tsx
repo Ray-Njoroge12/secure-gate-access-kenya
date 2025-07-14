@@ -1,7 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import InvitationForm from "@/components/InvitationForm";
-import InvitationsList from "@/components/InvitationsList";
-import PreApprovedVisitors from "@/components/PreApprovedVisitors";
+import { InvitationForm } from "@/components/InvitationForm";
+import { InvitationsList } from "@/components/InvitationsList";
 
 const ResidentDashboard = () => {
   return (
@@ -25,7 +24,9 @@ const ResidentDashboard = () => {
           </div>
         </TabsContent>
         <TabsContent value="pre-approved">
-          <PreApprovedVisitors />
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Pre-approved visitors feature coming soon.</p>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
