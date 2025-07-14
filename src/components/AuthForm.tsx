@@ -97,6 +97,18 @@ export function AuthForm() {
 
       // Create resident profile
       if (data.user) {
+        // Get the default community
+        const { data: communityData, error: communityError } = await supabase
+          .from('communities')
+          .select('id')
+          .limit(1)
+          .single();
+
+        if (communityError) {
+          console.error('Community fetch error:', communityError);
+          // Continue without community assignment for now
+        }
+
         // Encrypt phone number before storing
         const { data: encryptedData, error: encryptionError } = await supabase.functions.invoke(
           "encrypt-pii",
@@ -116,7 +128,7 @@ export function AuthForm() {
             email: formData.email,
             unit_number: formData.unitNumber,
             phone_encrypted: encryptedData.encryptedPhoneNumber,
-            community_id: 'default-community-id', // You'd get this from a community selection
+            community_id: communityData?.id || 'default-community-id',
           });
 
         if (profileError) {
