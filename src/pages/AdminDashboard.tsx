@@ -28,6 +28,7 @@ const AdminDashboard = () => {
     canceled: 0,
     overdue: 0,
   });
+  const [uiLanguage, setUiLanguage] = useState("en");
 
   // Fetch pending deletions
   useEffect(() => {
@@ -334,6 +335,13 @@ const AdminDashboard = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      <div className="mb-4">
+        <label className="block mb-1 font-medium">{uiLanguage === "sw" ? "Chagua Lugha" : "Select Language"}</label>
+        <Select value={uiLanguage} onValueChange={setUiLanguage} className="w-40">
+          <option value="en">English</option>
+          <option value="sw">Kiswahili</option>
+        </Select>
+      </div>
       {overdueDeletions.length > 0 && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
           <b>Warning:</b> {overdueDeletions.length} scheduled deletion(s) are overdue! <a href="#overdue-section" className="underline">View</a>
@@ -397,7 +405,7 @@ const AdminDashboard = () => {
       </div>
       
       <div className="mb-8 p-4 border rounded bg-muted/20">
-        <h2 className="text-xl font-semibold mb-2">Audit Log (Compliance)</h2>
+        <h2 className="text-xl font-semibold mb-2">{uiLanguage === "sw" ? "Ukaguzi wa Uzingatiaji" : "Audit Log (Compliance)"}</h2>
         <div className="flex gap-6 mb-4">
           <div className="p-3 bg-muted rounded border">
             <b>Requested:</b> {complianceStats.requested}

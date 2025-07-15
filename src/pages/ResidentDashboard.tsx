@@ -4,12 +4,14 @@ import { InvitationsList } from "@/components/InvitationsList";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
+import { Select } from "@/components/ui/select";
 
 const ResidentDashboard = () => {
   const { toast } = useToast();
   const [deletionRequested, setDeletionRequested] = useState(false);
   const [deletionDate, setDeletionDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [language, setLanguage] = useState("en");
 
   // Fetch deletion_requested_at on mount
   useEffect(() => {
@@ -28,6 +30,19 @@ const ResidentDashboard = () => {
         setDeletionRequested(false);
         setDeletionDate(null);
       }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const session = (await supabase.auth.getSession()).data.session;
+      if (!session) return;
+      const { data, error } = await supabase
+        .from("residents")
+        .select("language")
+        .eq("id", session.user.id)
+        .single();
+      if (data?.language) setLanguage(data.language);
     })();
   }, []);
 
@@ -97,6 +112,17 @@ const ResidentDashboard = () => {
     }
   };
 
+  const handleLanguageChange = async (lang: string) => {
+    setLanguage(lang);
+    const session = (await supabase.auth.getSession()).data.session;
+    if (!session) return;
+    const { error } = await supabase
+      .from("residents")
+      .update({ language: lang })
+      .eq("id", session.user.id);
+    if (!error) toast({ title: lang === "sw" ? "Lugha imebadilishwa" : "Language updated" });
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Resident Dashboard</h1>
@@ -126,6 +152,13 @@ const ResidentDashboard = () => {
             {loading ? "Requesting..." : "Request Account Deletion"}
           </button>
         )}
+      </div>
+      <div className="mb-4">
+        <label className="block mb-1 font-medium">{language === "sw" ? "Chagua Lugha" : "Select Language"}</label>
+        <Select value={language} onValueChange={handleLanguageChange} className="w-40">
+          <option value="en">English</option>
+          <option value="sw">Kiswahili</option>
+        </Select>
       </div>
       <Tabs defaultValue="invitations">
         <TabsList>
