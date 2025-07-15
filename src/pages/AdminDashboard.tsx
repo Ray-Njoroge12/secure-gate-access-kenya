@@ -334,7 +334,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-6">{uiLanguage === "sw" ? "Dashibodi ya Msimamizi" : "Admin Dashboard"}</h1>
       <div className="mb-4">
         <label className="block mb-1 font-medium">{uiLanguage === "sw" ? "Chagua Lugha" : "Select Language"}</label>
         <Select value={uiLanguage} onValueChange={setUiLanguage} className="w-40">
@@ -344,12 +344,12 @@ const AdminDashboard = () => {
       </div>
       {overdueDeletions.length > 0 && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          <b>Warning:</b> {overdueDeletions.length} scheduled deletion(s) are overdue! <a href="#overdue-section" className="underline">View</a>
+          <b>{uiLanguage === "sw" ? "Onyo:" : "Warning:"}</b> {overdueDeletions.length} {uiLanguage === "sw" ? "kufutwa kwa akaunti kunachelewa!" : "scheduled deletion(s) are overdue!"} <a href="#overdue-section" className="underline">{uiLanguage === "sw" ? "Tazama" : "View"}</a>
         </div>
       )}
       {/* Pending Deletions Section */}
       <div className="mb-8 p-4 border rounded bg-muted/20">
-        <h2 className="text-xl font-semibold mb-2">Pending Account Deletions</h2>
+        <h2 className="text-xl font-semibold mb-2">{uiLanguage === "sw" ? "Akaunti za Kufutwa Kupitishwa" : "Pending Account Deletions"}</h2>
         <div className="flex gap-2 mb-4">
           <Input
             placeholder="Search by email..."
@@ -358,25 +358,25 @@ const AdminDashboard = () => {
             className="w-64"
           />
           <Select value={roleFilter} onValueChange={setRoleFilter} className="w-40">
-            <option value="">All Roles</option>
-            <option value="resident">Resident</option>
-            <option value="visitor">Visitor</option>
+            <option value="">{uiLanguage === "sw" ? "Wote" : "All Roles"}</option>
+            <option value="resident">{uiLanguage === "sw" ? "Mwongozi" : "Resident"}</option>
+            <option value="visitor">{uiLanguage === "sw" ? "Mtumiaji" : "Visitor"}</option>
           </Select>
           <Select value={sortOrder} onValueChange={setSortOrder} className="w-40">
-            <option value="asc">Sort: Soonest First</option>
-            <option value="desc">Sort: Latest First</option>
+            <option value="asc">{uiLanguage === "sw" ? "Sajili: Kwanza Kuanzia" : "Sort: Soonest First"}</option>
+            <option value="desc">{uiLanguage === "sw" ? "Sajili: Haraka Kuanzia" : "Sort: Latest First"}</option>
           </Select>
         </div>
         {filteredDeletions.length === 0 ? (
-          <p className="text-muted-foreground">No pending deletion requests.</p>
+          <p className="text-muted-foreground">{uiLanguage === "sw" ? "Hakuna kutishwa kufutwa." : "No pending deletion requests."}</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr>
-                <th className="text-left">Type</th>
-                <th className="text-left">User ID</th>
-                <th className="text-left">Email</th>
-                <th className="text-left">Scheduled Deletion</th>
+                <th className="text-left">{uiLanguage === "sw" ? "Aina" : "Type"}</th>
+                <th className="text-left">{uiLanguage === "sw" ? "Namba ya Mwongozi" : "User ID"}</th>
+                <th className="text-left">{uiLanguage === "sw" ? "Barua Pepe" : "Email"}</th>
+                <th className="text-left">{uiLanguage === "sw" ? "Kufutwa Kupitishwa" : "Scheduled Deletion"}</th>
                 <th></th>
               </tr>
             </thead>
@@ -394,7 +394,7 @@ const AdminDashboard = () => {
                       onClick={() => handleCancelDeletion(u.id)}
                       disabled={loadingCancel === u.id}
                     >
-                      {loadingCancel === u.id ? "Canceling..." : "Cancel Deletion"}
+                      {loadingCancel === u.id ? "Canceling..." : uiLanguage === "sw" ? "Futa Kufutwa" : "Cancel Deletion"}
                     </Button>
                   </td>
                 </tr>
@@ -405,44 +405,44 @@ const AdminDashboard = () => {
       </div>
       
       <div className="mb-8 p-4 border rounded bg-muted/20">
-        <h2 className="text-xl font-semibold mb-2">{uiLanguage === "sw" ? "Ukaguzi wa Uzingatiaji" : "Audit Log (Compliance)"}</h2>
+        <h2 className="text-xl font-semibold mb-2">{uiLanguage === "sw" ? "Uzingatiaji wa Uzingatiaji" : "Audit Log (Compliance)"}</h2>
         <div className="flex gap-6 mb-4">
           <div className="p-3 bg-muted rounded border">
-            <b>Requested:</b> {complianceStats.requested}
+            <b>{uiLanguage === "sw" ? "Kutishwa:" : "Requested:"}</b> {complianceStats.requested}
           </div>
           <div className="p-3 bg-muted rounded border">
-            <b>Completed:</b> {complianceStats.completed}
+            <b>{uiLanguage === "sw" ? "Kamilika:" : "Completed:"}</b> {complianceStats.completed}
           </div>
           <div className="p-3 bg-muted rounded border">
-            <b>Canceled:</b> {complianceStats.canceled}
+            <b>{uiLanguage === "sw" ? "Futa:" : "Canceled:"}</b> {complianceStats.canceled}
           </div>
           <div className="p-3 bg-red-100 rounded border border-red-400 text-red-700">
-            <b>Overdue:</b> {complianceStats.overdue}
+            <b>{uiLanguage === "sw" ? "Kunachelewa:" : "Overdue:"}</b> {complianceStats.overdue}
           </div>
         </div>
         <div className="flex gap-2 mb-2">
           <Select value={logAction} onValueChange={setLogAction} className="w-40">
-            <option value="">All Actions</option>
-            <option value="request_deletion">Request Deletion</option>
-            <option value="cancel_deletion">Cancel Deletion</option>
+            <option value="">{uiLanguage === "sw" ? "Wote" : "All Actions"}</option>
+            <option value="request_deletion">{uiLanguage === "sw" ? "Kutishwa Kufutwa" : "Request Deletion"}</option>
+            <option value="cancel_deletion">{uiLanguage === "sw" ? "Futa Kufutwa" : "Cancel Deletion"}</option>
           </Select>
           <Input type="date" value={logStart} onChange={e => setLogStart(e.target.value)} className="w-40" />
           <Input type="date" value={logEnd} onChange={e => setLogEnd(e.target.value)} className="w-40" />
-          <Button onClick={exportLogs} variant="outline">Export CSV</Button>
-          <Button onClick={exportLogsPDF} variant="outline">Export PDF</Button>
-          <Button onClick={exportLogsXLSX} variant="outline">Export Excel</Button>
-          <Button onClick={downloadComplianceReportPDF} variant="default">Download Compliance Report (PDF)</Button>
-          <Button onClick={downloadComplianceReportXLSX} variant="default">Download Compliance Report (Excel)</Button>
+          <Button onClick={exportLogs} variant="outline">{uiLanguage === "sw" ? "Pakua CSV" : "Export CSV"}</Button>
+          <Button onClick={exportLogsPDF} variant="outline">{uiLanguage === "sw" ? "Pakua PDF" : "Export PDF"}</Button>
+          <Button onClick={exportLogsXLSX} variant="outline">{uiLanguage === "sw" ? "Pakua Excel" : "Export Excel"}</Button>
+          <Button onClick={downloadComplianceReportPDF} variant="default">{uiLanguage === "sw" ? "Pakua Ripoti ya Uzingatiaji (PDF)" : "Download Compliance Report (PDF)"}</Button>
+          <Button onClick={downloadComplianceReportXLSX} variant="default">{uiLanguage === "sw" ? "Pakua Ripoti ya Uzingatiaji (Excel)" : "Download Compliance Report (Excel)"}</Button>
         </div>
         <table className="w-full text-xs">
           <thead>
             <tr>
-              <th>Actor</th>
-              <th>Role</th>
-              <th>Action</th>
-              <th>Target</th>
-              <th>Timestamp</th>
-              <th>IP</th>
+              <th>{uiLanguage === "sw" ? "Mwongozi" : "Actor"}</th>
+              <th>{uiLanguage === "sw" ? "Rangi" : "Role"}</th>
+              <th>{uiLanguage === "sw" ? "Aina" : "Action"}</th>
+              <th>{uiLanguage === "sw" ? "Mwongozi" : "Target"}</th>
+              <th>{uiLanguage === "sw" ? "Waadharifu" : "Timestamp"}</th>
+              <th>{uiLanguage === "sw" ? "IP" : "IP"}</th>
             </tr>
           </thead>
           <tbody>
@@ -463,38 +463,38 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>System Status</CardTitle>
+            <CardTitle>{uiLanguage === "sw" ? "Hali ya Msimamizi" : "System Status"}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              Basic admin dashboard for visitor management system.
+              {uiLanguage === "sw" ? "Dashibodi ya msimamizi ya kuwasiliana na mwongozi." : "Basic admin dashboard for visitor management system."}
             </p>
             <Button 
               onClick={handleTestDatabase} 
               disabled={isLoading}
             >
-              {isLoading ? "Testing..." : "Test Database Connection"}
+              {isLoading ? "Testing..." : uiLanguage === "sw" ? "Sajili Hali ya Msimamizi" : "Test Database Connection"}
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle>{uiLanguage === "sw" ? "Aina za Kazi" : "Quick Actions"}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <Button variant="outline" className="w-full">
-                View All Invitations
+                {uiLanguage === "sw" ? "Tazama Wote wa Uchambuzi" : "View All Invitations"}
               </Button>
               <Button variant="outline" className="w-full">
-                System Reports
+                {uiLanguage === "sw" ? "Ripoti za Msimamizi" : "System Reports"}
               </Button>
               <Button variant="outline" className="w-full">
-                Backup Data
+                {uiLanguage === "sw" ? "Tengeneza Data" : "Backup Data"}
               </Button>
               <Button variant="destructive" className="w-full" onClick={handleCleanOldInvitations}>
-                Clean Old Invitations
+                {uiLanguage === "sw" ? "Futa Uchambuzi Za Kati" : "Clean Old Invitations"}
               </Button>
             </div>
           </CardContent>
@@ -503,7 +503,7 @@ const AdminDashboard = () => {
       <div id="overdue-section">
         {overdueDeletions.length > 0 && (
           <div className="mb-4">
-            <h3 className="font-semibold">Overdue Deletions</h3>
+            <h3 className="font-semibold">{uiLanguage === "sw" ? "Akaunti za Kunachelewa" : "Overdue Deletions"}</h3>
             <ul className="list-disc ml-6">
               {overdueDeletions.map(u => (
                 <li key={u.id}>{u.email} (requested: {u.deletion_requested_at})</li>

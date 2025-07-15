@@ -15,8 +15,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { User, IdCard, Phone } from "lucide-react";
+import { Select } from "@/components/ui/select";
 
 export function VisitorRegistration() {
+  const [language, setLanguage] = useState("en");
   const [formData, setFormData] = useState({
     fullName: "",
     idNumber: "",
@@ -110,9 +112,14 @@ export function VisitorRegistration() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Visitor Registration
-        </h2>
+        <div className="mb-4">
+          <label className="block mb-1 font-medium">{language === "sw" ? "Chagua Lugha" : "Select Language"}</label>
+          <Select value={language} onValueChange={setLanguage} className="w-40">
+            <option value="en">English</option>
+            <option value="sw">Kiswahili</option>
+          </Select>
+        </div>
+        <h1 className="text-3xl font-bold mb-6">{language === "sw" ? "Usajili wa Mgeni" : "Visitor Registration"}</h1>
         <p className="mt-2 text-center text-sm text-gray-600">
           Please complete your details to receive your gate access code.
         </p>
@@ -124,7 +131,7 @@ export function VisitorRegistration() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                 <div className="sm:col-span-6">
-                  <Label htmlFor="fullName">Full Name</Label>
+                  <Label htmlFor="fullName">{language === "sw" ? "Jina la Kwanza" : "Full Name"}</Label>
                   <div className="mt-1 relative rounded-md shadow-sm">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <User className="h-5 w-5 text-gray-400" />
@@ -142,7 +149,7 @@ export function VisitorRegistration() {
                 </div>
 
                 <div className="sm:col-span-6">
-                  <Label htmlFor="idNumber">National ID Number</Label>
+                  <Label htmlFor="idNumber">{language === "sw" ? "Namba ya Kitambulisho" : "National ID Number"}</Label>
                   <div className="mt-1 relative rounded-md shadow-sm">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <IdCard className="h-5 w-5 text-gray-400" />
@@ -160,7 +167,7 @@ export function VisitorRegistration() {
                 </div>
 
                 <div className="sm:col-span-6">
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <Label htmlFor="phoneNumber">{language === "sw" ? "Namba ya Simu" : "Phone Number"}</Label>
                   <div className="mt-1 relative rounded-md shadow-sm">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Phone className="h-5 w-5 text-gray-400" />
@@ -179,7 +186,7 @@ export function VisitorRegistration() {
                 </div>
 
                 <div className="sm:col-span-6">
-                  <Label htmlFor="visitorEmail">Visitor's Email</Label>
+                  <Label htmlFor="visitorEmail">{language === "sw" ? "Barua Pepe ya Mgeni" : "Visitor's Email"}</Label>
                   <div className="mt-1 relative rounded-md shadow-sm">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <User className="h-5 w-5 text-gray-400" />
@@ -198,7 +205,7 @@ export function VisitorRegistration() {
                 </div>
 
                 <div className="sm:col-span-6">
-                  <Label htmlFor="photo">Upload Photo (Selfie)</Label>
+                  <Label htmlFor="photo">{language === "sw" ? "Upload Foto (Mwongozi)" : "Upload Photo (Selfie)"}</Label>
                   <div className="mt-1 relative rounded-md shadow-sm">
                     <Input
                       id="photo"
@@ -220,7 +227,7 @@ export function VisitorRegistration() {
                   }
                 />
                 <Label htmlFor="consent" className="ml-2 block text-sm text-gray-900">
-                  I consent to the processing of my personal data.
+                  {language === "sw" ? "Ninifahamu kuweka data yangu ya kipekee." : "I consent to the processing of my personal data."}
                 </Label>
               </div>
 
