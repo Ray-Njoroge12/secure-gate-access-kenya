@@ -19,7 +19,8 @@ export async function handleCreateInvitationRequest(req: Request, supabaseClient
   try {
     const supabase = supabaseClient;
 
-    const { resident_id, visitor_full_name, visitor_email, visitor_phone_number, visit_date, is_multi_use, uses_remaining, start_date, end_date } = await req.json();
+    // Only extract visit details and resident_id
+    const { resident_id, visit_date, is_multi_use, uses_remaining, start_date, end_date } = await req.json();
 
     // Rate limiting check
     const now = Date.now();
@@ -33,27 +34,11 @@ export async function handleCreateInvitationRequest(req: Request, supabaseClient
     }
     lastRequestMap.set(resident_id, now);
 
-    // Encrypt PII using the encrypt-pii function
-    const { data: encryptedData, error: encryptError } = await supabase.functions.invoke(
-      "encrypt-pii",
-      {
-        body: {
-          fullName: visitor_full_name,
-          phoneNumber: visitor_phone_number,
-          visitorEmail: visitor_email,
-        },
-      }
-    );
-
-    if (encryptError) {
-      throw encryptError;
-    }
-
     // 1. Generate a secure, unique, and time-limited invitation token.
     const invitation_token = crypto.randomUUID();
     const token_expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours from now
 
-    // 2. Insert a new record into the visit_invitations table.
+    // 2. Insert a new record into the visit_invitations table (no visitor PII)
     const { data, error } = await supabase
       .from("visit_invitations")
       .insert({
@@ -66,9 +51,6 @@ export async function handleCreateInvitationRequest(req: Request, supabaseClient
         uses_remaining: is_multi_use ? uses_remaining : 1,
         start_date: is_multi_use ? start_date : visit_date,
         end_date: is_multi_use ? end_date : visit_date,
-        visitor_full_name_encrypted: encryptedData.encryptedFullName, // Store encrypted
-        visitor_phone_encrypted: encryptedData.encryptedPhoneNumber, // Store encrypted
-        visitor_email_encrypted: encryptedData.encryptedVisitorEmail, // Store encrypted
       })
       .select();
 
@@ -76,22 +58,8 @@ export async function handleCreateInvitationRequest(req: Request, supabaseClient
       throw error;
     }
 
-    // 3. Send an email to the visitor with a link containing the invitation token.
-    // Pass unencrypted details for email content, assuming send-invitation-email handles it.
-    const { data: emailData, error: emailError } = await supabase.functions.invoke(
-      "send-invitation-email",
-      {
-        body: {
-          visitor_email,
-          visitor_full_name,
-          invitation_token,
-        },
-      }
-    );
-
-    if (emailError) {
-      throw emailError;
-    }
+    // 3. (Optional) Send a notification to the resident or log the invitation creation
+    // No visitor email to send at this stage
 
     // Log the invitation creation
     const { error: logError } = await supabase
@@ -101,7 +69,7 @@ export async function handleCreateInvitationRequest(req: Request, supabaseClient
         action: "create_invitation",
         entity_type: "visit_invitation",
         entity_id: data[0].id,
-        details: { visitor_email: visitor_email },
+        details: {},
       });
 
     if (logError) {
