@@ -164,21 +164,20 @@ describe('AuthForm', () => {
     // Always click the Sign Up tab before querying fields
     const signUpTab = await screen.findByRole('tab', { name: /Sign Up/i });
     fireEvent.click(signUpTab);
-    // Wait for the sign-up form to be visible
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText('Enter your full name')).toBeInTheDocument();
-    });
-    const fullNameInput = screen.getByPlaceholderText('Enter your full name');
-    const unitNumberInput = screen.getByPlaceholderText('e.g., 15B, 302, etc.');
-    const emailInput = screen.getByPlaceholderText('Enter your email');
-    const passwordInput = screen.getByPlaceholderText('Create a password');
+    // Wait for the sign-up tabpanel to be visible
+    const signUpPanel = await screen.findByTestId('signup-tab-content');
+    // Query inputs within the visible tabpanel only
+    const fullNameInput = within(signUpPanel).getByPlaceholderText('Enter your full name');
+    const unitNumberInput = within(signUpPanel).getByPlaceholderText('e.g., 15B, 302, etc.');
+    const emailInput = within(signUpPanel).getByPlaceholderText('Enter your email');
+    const passwordInput = within(signUpPanel).getByPlaceholderText('Create a password');
 
     fireEvent.change(fullNameInput, { target: { value: 'John Doe' } });
     fireEvent.change(unitNumberInput, { target: { value: '101' } });
     fireEvent.change(emailInput, { target: { value: 'new@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'newpassword' } });
 
-    fireEvent.click(screen.getByRole('button', { name: /Create Account/i }));
+    fireEvent.click(within(signUpPanel).getByRole('button', { name: /Create Account/i }));
 
     await waitFor(() => {
       expect(mockSignUp).toHaveBeenCalledWith({
@@ -224,21 +223,20 @@ describe('AuthForm', () => {
     // Always click the Sign Up tab before querying fields
     const signUpTab = await screen.findByRole('tab', { name: /Sign Up/i });
     fireEvent.click(signUpTab);
-    // Wait for the sign-up form to be visible
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText('Enter your full name')).toBeInTheDocument();
-    });
-    const fullNameInput = screen.getByPlaceholderText('Enter your full name');
-    const unitNumberInput = screen.getByPlaceholderText('e.g., 15B, 302, etc.');
-    const emailInput = screen.getByPlaceholderText('Enter your email');
-    const passwordInput = screen.getByPlaceholderText('Create a password');
+    // Wait for the sign-up tabpanel to be visible
+    const signUpPanel = await screen.findByTestId('signup-tab-content');
+    // Query inputs within the visible tabpanel only
+    const fullNameInput = within(signUpPanel).getByPlaceholderText('Enter your full name');
+    const unitNumberInput = within(signUpPanel).getByPlaceholderText('e.g., 15B, 302, etc.');
+    const emailInput = within(signUpPanel).getByPlaceholderText('Enter your email');
+    const passwordInput = within(signUpPanel).getByPlaceholderText('Create a password');
 
     fireEvent.change(fullNameInput, { target: { value: 'John Doe' } });
     fireEvent.change(unitNumberInput, { target: { value: '101' } });
     fireEvent.change(emailInput, { target: { value: 'new@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'newpassword' } });
 
-    fireEvent.click(screen.getByRole('button', { name: /Create Account/i }));
+    fireEvent.click(within(signUpPanel).getByRole('button', { name: /Create Account/i }));
 
     await waitFor(() => {
       expect(mockSignUp).toHaveBeenCalledWith(expect.any(Object));
