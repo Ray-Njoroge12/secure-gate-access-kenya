@@ -161,6 +161,7 @@ describe('AuthForm', () => {
       </BrowserRouter>
     );
 
+    // Always click the Sign Up tab before querying fields
     fireEvent.click(screen.getByRole('tab', { name: /Sign Up/i }));
     const fullNameInput = await screen.findByPlaceholderText('Enter your full name');
     const unitNumberInput = screen.getByPlaceholderText('e.g., 15B, 302, etc.');
@@ -215,6 +216,7 @@ describe('AuthForm', () => {
       </BrowserRouter>
     );
 
+    // Always click the Sign Up tab before querying fields
     fireEvent.click(screen.getByRole('tab', { name: /Sign Up/i }));
     const fullNameInput = await screen.findByPlaceholderText('Enter your full name');
     const unitNumberInput = screen.getByPlaceholderText('e.g., 15B, 302, etc.');
