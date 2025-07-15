@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { t } from "@/utils/i18n";
 
 const ResidentDashboard = () => {
   const { toast } = useToast();
@@ -126,7 +127,7 @@ const ResidentDashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">{language === "sw" ? "Dashibodi ya Mkazi" : "Resident Dashboard"}</h1>
+      <h1 className="text-3xl font-bold mb-6">{t("resident_dashboard", language)}</h1>
       {/* Data Deletion Section */}
       <div className="mb-8 p-4 border rounded bg-muted/20">
         <h2 className="text-xl font-semibold mb-2">Account Deletion</h2>
@@ -146,14 +147,12 @@ const ResidentDashboard = () => {
           </div>
         ) : (
           <Button onClick={handleDeleteRequest} disabled={deletionRequested || loading}>
-            {deletionRequested
-              ? language === "sw" ? "Ombi la kufuta limewasilishwa" : "Deletion requested"
-              : language === "sw" ? "Omba Kufuta Akaunti" : "Request Account Deletion"}
+            {deletionRequested ? t("deletion_requested", language) : t("request_account_deletion", language)}
           </Button>
         )}
       </div>
       <div className="mb-4">
-        <label className="block mb-1 font-medium">{language === "sw" ? "Chagua Lugha" : "Select Language"}</label>
+        <label className="block mb-1 font-medium">{t("select_language", language)}</label>
         <Select value={language} onValueChange={handleLanguageChange} className="w-40">
           <option value="en">English</option>
           <option value="sw">Kiswahili</option>
@@ -161,8 +160,8 @@ const ResidentDashboard = () => {
       </div>
       <Tabs defaultValue="invitations">
         <TabsList>
-          <TabsTrigger value="invitations">{language === "sw" ? "Mialiko" : "Invitations"}</TabsTrigger>
-          <TabsTrigger value="pre-approved">{language === "sw" ? "Mwongozi wa kabla ya kusimamisha" : "Pre-Approved Visitors"}</TabsTrigger>
+          <TabsTrigger value="invitations">{t("invitations", language)}</TabsTrigger>
+          <TabsTrigger value="pre-approved">{t("pre_approved_visitors", language)}</TabsTrigger>
         </TabsList>
         <TabsContent value="invitations">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

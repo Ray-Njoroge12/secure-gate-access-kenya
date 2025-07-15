@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { differenceInDays, parseISO, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
+import { t } from "@/utils/i18n";
 
 const AdminDashboard = () => {
   const { toast } = useToast();
@@ -334,9 +335,9 @@ const AdminDashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">{uiLanguage === "sw" ? "Dashibodi ya Msimamizi" : "Admin Dashboard"}</h1>
+      <h1 className="text-3xl font-bold mb-6">{t("admin_dashboard", uiLanguage)}</h1>
       <div className="mb-4">
-        <label className="block mb-1 font-medium">{uiLanguage === "sw" ? "Chagua Lugha" : "Select Language"}</label>
+        <label className="block mb-1 font-medium">{t("select_language", uiLanguage)}</label>
         <Select value={uiLanguage} onValueChange={setUiLanguage} className="w-40">
           <option value="en">English</option>
           <option value="sw">Kiswahili</option>
@@ -344,12 +345,12 @@ const AdminDashboard = () => {
       </div>
       {overdueDeletions.length > 0 && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          <b>{uiLanguage === "sw" ? "Onyo:" : "Warning:"}</b> {overdueDeletions.length} {uiLanguage === "sw" ? "kufutwa kwa akaunti kunachelewa!" : "scheduled deletion(s) are overdue!"} <a href="#overdue-section" className="underline">{uiLanguage === "sw" ? "Tazama" : "View"}</a>
+          <b>{t("warning", uiLanguage)}</b> {overdueDeletions.length} {t("overdue_deletions_warning", uiLanguage)} <a href="#overdue-section" className="underline">{t("view", uiLanguage)}</a>
         </div>
       )}
       {/* Pending Deletions Section */}
       <div className="mb-8 p-4 border rounded bg-muted/20">
-        <h2 className="text-xl font-semibold mb-2">{uiLanguage === "sw" ? "Akaunti za Kufutwa Kupitishwa" : "Pending Account Deletions"}</h2>
+        <h2 className="text-xl font-semibold mb-2">{t("pending_deletions", uiLanguage)}</h2>
         <div className="flex gap-2 mb-4">
           <Input
             placeholder="Search by email..."
@@ -358,25 +359,25 @@ const AdminDashboard = () => {
             className="w-64"
           />
           <Select value={roleFilter} onValueChange={setRoleFilter} className="w-40">
-            <option value="">{uiLanguage === "sw" ? "Wote" : "All Roles"}</option>
-            <option value="resident">{uiLanguage === "sw" ? "Mwongozi" : "Resident"}</option>
-            <option value="visitor">{uiLanguage === "sw" ? "Mtumiaji" : "Visitor"}</option>
+            <option value="">{t("all_roles", uiLanguage)}</option>
+            <option value="resident">{t("resident", uiLanguage)}</option>
+            <option value="visitor">{t("visitor", uiLanguage)}</option>
           </Select>
           <Select value={sortOrder} onValueChange={setSortOrder} className="w-40">
-            <option value="asc">{uiLanguage === "sw" ? "Sajili: Kwanza Kuanzia" : "Sort: Soonest First"}</option>
-            <option value="desc">{uiLanguage === "sw" ? "Sajili: Haraka Kuanzia" : "Sort: Latest First"}</option>
+            <option value="asc">{t("sort_soonest_first", uiLanguage)}</option>
+            <option value="desc">{t("sort_latest_first", uiLanguage)}</option>
           </Select>
         </div>
         {filteredDeletions.length === 0 ? (
-          <p className="text-muted-foreground">{uiLanguage === "sw" ? "Hakuna kutishwa kufutwa." : "No pending deletion requests."}</p>
+          <p className="text-muted-foreground">{t("no_pending_deletion_requests", uiLanguage)}</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr>
-                <th className="text-left">{uiLanguage === "sw" ? "Aina" : "Type"}</th>
-                <th className="text-left">{uiLanguage === "sw" ? "Namba ya Mwongozi" : "User ID"}</th>
-                <th className="text-left">{uiLanguage === "sw" ? "Barua Pepe" : "Email"}</th>
-                <th className="text-left">{uiLanguage === "sw" ? "Kufutwa Kupitishwa" : "Scheduled Deletion"}</th>
+                <th className="text-left">{t("type", uiLanguage)}</th>
+                <th className="text-left">{t("user_id", uiLanguage)}</th>
+                <th className="text-left">{t("email", uiLanguage)}</th>
+                <th className="text-left">{t("scheduled_deletion", uiLanguage)}</th>
                 <th></th>
               </tr>
             </thead>
@@ -394,7 +395,7 @@ const AdminDashboard = () => {
                       onClick={() => handleCancelDeletion(u.id)}
                       disabled={loadingCancel === u.id}
                     >
-                      {loadingCancel === u.id ? "Canceling..." : uiLanguage === "sw" ? "Futa Kufutwa" : "Cancel Deletion"}
+                      {loadingCancel === u.id ? "Canceling..." : t("cancel_deletion", uiLanguage)}
                     </Button>
                   </td>
                 </tr>
@@ -405,44 +406,44 @@ const AdminDashboard = () => {
       </div>
       
       <div className="mb-8 p-4 border rounded bg-muted/20">
-        <h2 className="text-xl font-semibold mb-2">{uiLanguage === "sw" ? "Uzingatiaji wa Uzingatiaji" : "Audit Log (Compliance)"}</h2>
+        <h2 className="text-xl font-semibold mb-2">{t("audit_log_compliance", uiLanguage)}</h2>
         <div className="flex gap-6 mb-4">
           <div className="p-3 bg-muted rounded border">
-            <b>{uiLanguage === "sw" ? "Kutishwa:" : "Requested:"}</b> {complianceStats.requested}
+            <b>{t("requested", uiLanguage)}:</b> {complianceStats.requested}
           </div>
           <div className="p-3 bg-muted rounded border">
-            <b>{uiLanguage === "sw" ? "Kamilika:" : "Completed:"}</b> {complianceStats.completed}
+            <b>{t("completed", uiLanguage)}:</b> {complianceStats.completed}
           </div>
           <div className="p-3 bg-muted rounded border">
-            <b>{uiLanguage === "sw" ? "Futa:" : "Canceled:"}</b> {complianceStats.canceled}
+            <b>{t("canceled", uiLanguage)}:</b> {complianceStats.canceled}
           </div>
           <div className="p-3 bg-red-100 rounded border border-red-400 text-red-700">
-            <b>{uiLanguage === "sw" ? "Kunachelewa:" : "Overdue:"}</b> {complianceStats.overdue}
+            <b>{t("overdue", uiLanguage)}:</b> {complianceStats.overdue}
           </div>
         </div>
         <div className="flex gap-2 mb-2">
           <Select value={logAction} onValueChange={setLogAction} className="w-40">
-            <option value="">{uiLanguage === "sw" ? "Wote" : "All Actions"}</option>
-            <option value="request_deletion">{uiLanguage === "sw" ? "Kutishwa Kufutwa" : "Request Deletion"}</option>
-            <option value="cancel_deletion">{uiLanguage === "sw" ? "Futa Kufutwa" : "Cancel Deletion"}</option>
+            <option value="">{t("all_actions", uiLanguage)}</option>
+            <option value="request_deletion">{t("request_deletion", uiLanguage)}</option>
+            <option value="cancel_deletion">{t("cancel_deletion", uiLanguage)}</option>
           </Select>
           <Input type="date" value={logStart} onChange={e => setLogStart(e.target.value)} className="w-40" />
           <Input type="date" value={logEnd} onChange={e => setLogEnd(e.target.value)} className="w-40" />
-          <Button onClick={exportLogs} variant="outline">{uiLanguage === "sw" ? "Pakua CSV" : "Export CSV"}</Button>
-          <Button onClick={exportLogsPDF} variant="outline">{uiLanguage === "sw" ? "Pakua PDF" : "Export PDF"}</Button>
-          <Button onClick={exportLogsXLSX} variant="outline">{uiLanguage === "sw" ? "Pakua Excel" : "Export Excel"}</Button>
-          <Button onClick={downloadComplianceReportPDF} variant="default">{uiLanguage === "sw" ? "Pakua Ripoti ya Uzingatiaji (PDF)" : "Download Compliance Report (PDF)"}</Button>
-          <Button onClick={downloadComplianceReportXLSX} variant="default">{uiLanguage === "sw" ? "Pakua Ripoti ya Uzingatiaji (Excel)" : "Download Compliance Report (Excel)"}</Button>
+          <Button onClick={exportLogs} variant="outline">{t("export_csv", uiLanguage)}</Button>
+          <Button onClick={exportLogsPDF} variant="outline">{t("export_pdf", uiLanguage)}</Button>
+          <Button onClick={exportLogsXLSX} variant="outline">{t("export_excel", uiLanguage)}</Button>
+          <Button onClick={downloadComplianceReportPDF} variant="default">{t("download_compliance_report_pdf", uiLanguage)}</Button>
+          <Button onClick={downloadComplianceReportXLSX} variant="default">{t("download_compliance_report_excel", uiLanguage)}</Button>
         </div>
         <table className="w-full text-xs">
           <thead>
             <tr>
-              <th>{uiLanguage === "sw" ? "Mwongozi" : "Actor"}</th>
-              <th>{uiLanguage === "sw" ? "Rangi" : "Role"}</th>
-              <th>{uiLanguage === "sw" ? "Aina" : "Action"}</th>
-              <th>{uiLanguage === "sw" ? "Mwongozi" : "Target"}</th>
-              <th>{uiLanguage === "sw" ? "Waadharifu" : "Timestamp"}</th>
-              <th>{uiLanguage === "sw" ? "IP" : "IP"}</th>
+              <th>{t("actor", uiLanguage)}</th>
+              <th>{t("role", uiLanguage)}</th>
+              <th>{t("action", uiLanguage)}</th>
+              <th>{t("target", uiLanguage)}</th>
+              <th>{t("timestamp", uiLanguage)}</th>
+              <th>{t("ip", uiLanguage)}</th>
             </tr>
           </thead>
           <tbody>
@@ -463,38 +464,38 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>{uiLanguage === "sw" ? "Hali ya Msimamizi" : "System Status"}</CardTitle>
+            <CardTitle>{t("system_status", uiLanguage)}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              {uiLanguage === "sw" ? "Dashibodi ya msimamizi ya kuwasiliana na mwongozi." : "Basic admin dashboard for visitor management system."}
+              {t("basic_admin_dashboard_description", uiLanguage)}
             </p>
             <Button 
               onClick={handleTestDatabase} 
               disabled={isLoading}
             >
-              {isLoading ? "Testing..." : uiLanguage === "sw" ? "Sajili Hali ya Msimamizi" : "Test Database Connection"}
+              {isLoading ? "Testing..." : t("test_database_connection", uiLanguage)}
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>{uiLanguage === "sw" ? "Aina za Kazi" : "Quick Actions"}</CardTitle>
+            <CardTitle>{t("quick_actions", uiLanguage)}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <Button variant="outline" className="w-full">
-                {uiLanguage === "sw" ? "Tazama Wote wa Uchambuzi" : "View All Invitations"}
+                {t("view_all_invitations", uiLanguage)}
               </Button>
               <Button variant="outline" className="w-full">
-                {uiLanguage === "sw" ? "Ripoti za Msimamizi" : "System Reports"}
+                {t("system_reports", uiLanguage)}
               </Button>
               <Button variant="outline" className="w-full">
-                {uiLanguage === "sw" ? "Tengeneza Data" : "Backup Data"}
+                {t("backup_data", uiLanguage)}
               </Button>
               <Button variant="destructive" className="w-full" onClick={handleCleanOldInvitations}>
-                {uiLanguage === "sw" ? "Futa Uchambuzi Za Kati" : "Clean Old Invitations"}
+                {t("clean_old_invitations", uiLanguage)}
               </Button>
             </div>
           </CardContent>
@@ -503,7 +504,7 @@ const AdminDashboard = () => {
       <div id="overdue-section">
         {overdueDeletions.length > 0 && (
           <div className="mb-4">
-            <h3 className="font-semibold">{uiLanguage === "sw" ? "Akaunti za Kunachelewa" : "Overdue Deletions"}</h3>
+            <h3 className="font-semibold">{t("overdue_deletions", uiLanguage)}</h3>
             <ul className="list-disc ml-6">
               {overdueDeletions.map(u => (
                 <li key={u.id}>{u.email} (requested: {u.deletion_requested_at})</li>
