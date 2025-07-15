@@ -193,9 +193,7 @@ export type Database = {
           visit_date: string
           visit_duration_hours: number | null
           visit_purpose: string
-          visitor_email: string | null
-          visitor_full_name: string
-          visitor_phone: string
+          visitor_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -207,9 +205,7 @@ export type Database = {
           visit_date: string
           visit_duration_hours?: number | null
           visit_purpose: string
-          visitor_email?: string | null
-          visitor_full_name: string
-          visitor_phone: string
+          visitor_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -221,9 +217,7 @@ export type Database = {
           visit_date?: string
           visit_duration_hours?: number | null
           visit_purpose?: string
-          visitor_email?: string | null
-          visitor_full_name?: string
-          visitor_phone?: string
+          visitor_id?: string | null
         }
         Relationships: [
           {
@@ -231,6 +225,13 @@ export type Database = {
             columns: ["resident_id"]
             isOneToOne: false
             referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_visitor_invitation"
+            columns: ["visitor_id"]
+            isOneToOne: false
+            referencedRelation: "visitors"
             referencedColumns: ["id"]
           },
         ]

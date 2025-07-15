@@ -15,9 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Send, UserPlus } from "lucide-react";
 
 export function InvitationForm() {
-  const [visitorFullName, setVisitorFullName] = useState("");
-  const [visitorEmail, setVisitorEmail] = useState("");
-  const [visitorPhoneNumber, setVisitorPhoneNumber] = useState("");
+  // Remove visitorFullName, visitorEmail, visitorPhoneNumber from state
   const [visitDate, setVisitDate] = useState("");
   const [isMultiUse, setIsMultiUse] = useState(false);
   const [usesRemaining, setUsesRemaining] = useState(1);
@@ -38,12 +36,10 @@ export function InvitationForm() {
         throw new Error("You must be logged in to send invitations.");
       }
 
+      // Only send visit details and resident_id
       const { error } = await supabase.functions.invoke("create-invitation", {
         body: {
           resident_id: user.id,
-          visitor_full_name: visitorFullName,
-          visitor_email: visitorEmail,
-          visitor_phone_number: visitorPhoneNumber,
           visit_date: visitDate,
           is_multi_use: isMultiUse,
           uses_remaining: isMultiUse ? usesRemaining : 1,
@@ -58,11 +54,8 @@ export function InvitationForm() {
 
       toast({
         title: "Invitation Sent!",
-        description: `An invitation has been sent to ${visitorEmail}.`,
+        description: `An invitation has been created. The visitor will receive a registration link.`,
       });
-      setVisitorFullName("");
-      setVisitorEmail("");
-      setVisitorPhoneNumber("");
       setVisitDate("");
     } catch (error) {
       console.error("Error sending invitation:", error);
