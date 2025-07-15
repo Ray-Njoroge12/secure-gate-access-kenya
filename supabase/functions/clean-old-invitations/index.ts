@@ -1,37 +1,31 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request));
-});
-
-async function handleRequest(request: Request) {
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*" } });
   }
 
   try {
-    const { data, error } = await supabase
-      .from('invitations')
-      .delete()
-      .lt('expires_at', new Date().toISOString());
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
 
+    // Call the Postgres function for data retention
+    const { error } = await supabase.rpc("clean_old_invitations");
     if (error) {
       throw error;
     }
 
-    return new Response(JSON.stringify({ message: 'Old invitations cleaned successfully.' }), {
+    return new Response(JSON.stringify({ message: "Old invitations and access codes cleaned successfully." }), {
+      headers: { "Content-Type": "application/json" },
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
     return new Response(JSON.stringify({ error: (error as Error).message }), {
+      headers: { "Content-Type": "application/json" },
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
     });
   }
-}
+});
