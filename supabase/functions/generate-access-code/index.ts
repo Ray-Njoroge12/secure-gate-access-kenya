@@ -8,7 +8,7 @@ const RS256_PRIVATE_KEY = Deno.env.get("RS256_PRIVATE_KEY") ?? "";
 const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
 const FROM_EMAIL = Deno.env.get("FROM_EMAIL");
 
-serve(async (req) => {
+export async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -129,4 +129,7 @@ serve(async (req) => {
       status: 400,
     });
   }
-});
+}
+
+// For deployment
+serve(handler);

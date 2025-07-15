@@ -18,7 +18,7 @@ const rateLimitMap = new Map<string, { count: number; lastAttempt: number }>();
 const RATE_LIMIT_ATTEMPTS = 5;
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
-serve(async (req) => {
+export async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -197,4 +197,7 @@ serve(async (req) => {
       status: 400,
     });
   }
-});
+}
+
+// For deployment
+serve(handler);
