@@ -14,6 +14,10 @@ const AdminDashboard = () => {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [logAction, setLogAction] = useState("");
+  const [logStart, setLogStart] = useState("");
+  const [logEnd, setLogEnd] = useState("");
 
   // Fetch pending deletions
   useEffect(() => {
@@ -36,6 +40,46 @@ const AdminDashboard = () => {
       }
     })();
   }, []);
+
+  // Fetch audit logs
+  useEffect(() => {
+    (async () => {
+      let query = supabase
+        .from("audit_logs")
+        .select("id, event_type, payload, created_at")
+        .eq("event_type", "user_deletion")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (logAction) query = query.contains("payload", { action: logAction });
+      if (logStart) query = query.gte("created_at", logStart);
+      if (logEnd) query = query.lte("created_at", logEnd);
+      const { data } = await query;
+      setAuditLogs(data || []);
+    })();
+  }, [logAction, logStart, logEnd]);
+
+  // Export to CSV
+  const exportLogs = () => {
+    const rows = [
+      ["Actor ID", "Actor Role", "Action", "Target User", "Timestamp", "IP"],
+      ...auditLogs.map(l => [
+        l.payload.actor_id,
+        l.payload.actor_role,
+        l.payload.action,
+        l.payload.target_user_id,
+        l.payload.timestamp,
+        l.payload.ip,
+      ]),
+    ];
+    const csv = rows.map(r => r.map(x => `"${x ?? ""}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `audit_logs_${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleCancelDeletion = async (userId: string) => {
     setLoadingCancel(userId);
@@ -208,6 +252,44 @@ const AdminDashboard = () => {
         )}
       </div>
       
+      <div className="mb-8 p-4 border rounded bg-muted/20">
+        <h2 className="text-xl font-semibold mb-2">Audit Log (Compliance)</h2>
+        <div className="flex gap-2 mb-2">
+          <Select value={logAction} onValueChange={setLogAction} className="w-40">
+            <option value="">All Actions</option>
+            <option value="request_deletion">Request Deletion</option>
+            <option value="cancel_deletion">Cancel Deletion</option>
+          </Select>
+          <Input type="date" value={logStart} onChange={e => setLogStart(e.target.value)} className="w-40" />
+          <Input type="date" value={logEnd} onChange={e => setLogEnd(e.target.value)} className="w-40" />
+          <Button onClick={exportLogs} variant="outline">Export CSV</Button>
+        </div>
+        <table className="w-full text-xs">
+          <thead>
+            <tr>
+              <th>Actor</th>
+              <th>Role</th>
+              <th>Action</th>
+              <th>Target</th>
+              <th>Timestamp</th>
+              <th>IP</th>
+            </tr>
+          </thead>
+          <tbody>
+            {auditLogs.map(l => (
+              <tr key={l.id}>
+                <td>{l.payload.actor_id}</td>
+                <td>{l.payload.actor_role}</td>
+                <td>{l.payload.action}</td>
+                <td>{l.payload.target_user_id}</td>
+                <td>{l.payload.timestamp}</td>
+                <td>{l.payload.ip}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
