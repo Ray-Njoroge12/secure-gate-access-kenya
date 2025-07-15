@@ -266,6 +266,71 @@ const AdminDashboard = () => {
       return sortOrder === "asc" ? aDate - bDate : bDate - aDate;
     });
 
+  const downloadComplianceReportPDF = () => {
+    const doc = new jsPDF();
+    let y = 10;
+    doc.text("Compliance Report", 10, y);
+    y += 10;
+    doc.text(`Requested: ${complianceStats.requested}  Completed: ${complianceStats.completed}  Canceled: ${complianceStats.canceled}  Overdue: ${complianceStats.overdue}`, 10, y);
+    y += 10;
+    if (overdueDeletions.length > 0) {
+      doc.text("Overdue Deletions:", 10, y);
+      y += 8;
+      overdueDeletions.forEach(u => {
+        doc.text(`${u.email} (requested: ${u.deletion_requested_at})`, 12, y);
+        y += 8;
+        if (y > 270) { doc.addPage(); y = 20; }
+      });
+      y += 8;
+    }
+    doc.text("Audit Logs:", 10, y);
+    y += 8;
+    doc.text(["Actor ID", "Role", "Action", "Target", "Timestamp", "IP"].join(" | "), 10, y);
+    y += 8;
+    auditLogs.forEach(l => {
+      doc.text([
+        l.payload.actor_id,
+        l.payload.actor_role,
+        l.payload.action,
+        l.payload.target_user_id,
+        l.payload.timestamp,
+        l.payload.ip,
+      ].join(" | "), 10, y);
+      y += 8;
+      if (y > 270) { doc.addPage(); y = 20; }
+    });
+    doc.save(`compliance_report_${Date.now()}.pdf`);
+  };
+
+  const downloadComplianceReportXLSX = () => {
+    const wsData = [
+      ["Compliance Summary"],
+      ["Requested", complianceStats.requested],
+      ["Completed", complianceStats.completed],
+      ["Canceled", complianceStats.canceled],
+      ["Overdue", complianceStats.overdue],
+      [],
+      ["Overdue Deletions"],
+      ["Email", "Requested At"],
+      ...overdueDeletions.map(u => [u.email, u.deletion_requested_at]),
+      [],
+      ["Audit Logs"],
+      ["Actor ID", "Role", "Action", "Target User", "Timestamp", "IP"],
+      ...auditLogs.map(l => [
+        l.payload.actor_id,
+        l.payload.actor_role,
+        l.payload.action,
+        l.payload.target_user_id,
+        l.payload.timestamp,
+        l.payload.ip,
+      ]),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "ComplianceReport");
+    XLSX.writeFile(wb, `compliance_report_${Date.now()}.xlsx`);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
@@ -358,6 +423,8 @@ const AdminDashboard = () => {
           <Button onClick={exportLogs} variant="outline">Export CSV</Button>
           <Button onClick={exportLogsPDF} variant="outline">Export PDF</Button>
           <Button onClick={exportLogsXLSX} variant="outline">Export Excel</Button>
+          <Button onClick={downloadComplianceReportPDF} variant="default">Download Compliance Report (PDF)</Button>
+          <Button onClick={downloadComplianceReportXLSX} variant="default">Download Compliance Report (Excel)</Button>
         </div>
         <table className="w-full text-xs">
           <thead>
