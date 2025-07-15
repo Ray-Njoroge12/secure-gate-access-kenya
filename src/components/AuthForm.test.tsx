@@ -1,3 +1,4 @@
+import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { AuthForm } from './AuthForm';
 import { BrowserRouter } from 'react-router-dom';
