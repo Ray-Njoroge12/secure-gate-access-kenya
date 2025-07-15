@@ -7,6 +7,7 @@ import { InvitationsList } from "@/components/InvitationsList";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface Invitation {
   status: string;
@@ -17,6 +18,7 @@ const Index = () => {
   const { toast } = useToast();
   const [activeInvitationsCount, setActiveInvitationsCount] = useState(0);
   const [qrCodesGeneratedCount, setQrCodesGeneratedCount] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -74,28 +76,18 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground">
-                <Shield className="h-6 w-6" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">SecureGate Kenya</h1>
-                <p className="text-muted-foreground">Digital Visitor Management for Gated Communities</p>
-              </div>
-            </div>
-            <Button variant="outline" size="icon" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex flex-col">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-10 bg-primary text-primary-foreground shadow flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Shield className="h-7 w-7" />
+          <span className="font-bold text-lg">SecureGate Resident</span>
         </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-8">
+        <Button variant="ghost" size="icon" onClick={async () => { await supabase.auth.signOut(); navigate('/login'); }} aria-label="Logout">
+          <LogOut className="h-5 w-5" />
+        </Button>
+      </header>
+      <main className="flex-1 container mx-auto px-2 py-4 flex flex-col gap-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
@@ -199,6 +191,25 @@ const Index = () => {
           </Card>
         </div>
 
+        {/* QR Code Viewer Section (placeholder for now) */}
+        <div className="mb-8">
+          <Card className="w-full max-w-md mx-auto">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <QrCode className="h-5 w-5 text-primary" />
+                <CardTitle>Your Guest QR Codes</CardTitle>
+              </div>
+              <CardDescription>
+                View and show QR codes for your active invitations.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* TODO: Map over active invitations and show QR codes */}
+              <div className="text-muted-foreground text-center">Coming soon: View and share QR codes for your guests here.</div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Main Content */}
         <Tabs defaultValue="invite" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
@@ -223,7 +234,7 @@ const Index = () => {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
+      </main>
     </div>
   );
 };
