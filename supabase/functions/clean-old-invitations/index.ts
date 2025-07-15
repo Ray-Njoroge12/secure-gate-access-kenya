@@ -17,11 +17,19 @@ serve(async (req) => {
     if (error) {
       throw error;
     }
-
-    return new Response(JSON.stringify({ message: "Old invitations and access codes cleaned successfully." }), {
-      headers: { "Content-Type": "application/json" },
-      status: 200,
+    // Log the cleanup event
+    await supabase.from("audit_logs").insert({
+      event_type: "data_retention_cleanup",
+      payload: {
+        message: "Ran clean_old_invitations: visitors auto-deleted after 30 days from last visit or invitation expiry.",
+        timestamp: new Date().toISOString(),
+      },
+      created_at: new Date().toISOString(),
     });
+    return new Response(
+      JSON.stringify({ success: true, message: "Cleanup complete. Visitors auto-deleted after 30 days." }),
+      { headers: { "Content-Type": "application/json" } }
+    );
   } catch (error) {
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       headers: { "Content-Type": "application/json" },
