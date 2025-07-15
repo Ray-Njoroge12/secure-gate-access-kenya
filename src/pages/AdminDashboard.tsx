@@ -7,6 +7,61 @@ import { supabase } from "@/integrations/supabase/client";
 const AdminDashboard = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingDeletions, setPendingDeletions] = useState<any[]>([]);
+  const [loadingCancel, setLoadingCancel] = useState<string | null>(null);
+
+  // Fetch pending deletions
+  useEffect(() => {
+    (async () => {
+      const session = (await supabase.auth.getSession()).data.session;
+      if (!session) return;
+      const res = await fetch("/functions/v1/list-pending-deletions", {
+        headers: { "Authorization": `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        // Merge residents and visitors, tag with type
+        const merged = [
+          ...(data.residents || []).map((r: any) => ({ ...r, type: "resident" })),
+          ...(data.visitors || []).map((v: any) => ({ ...v, type: "visitor" })),
+        ];
+        setPendingDeletions(merged);
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to fetch pending deletions.", variant: "destructive" });
+      }
+    })();
+  }, []);
+
+  const handleCancelDeletion = async (userId: string) => {
+    setLoadingCancel(userId);
+    try {
+      const session = (await supabase.auth.getSession()).data.session;
+      if (!session) {
+        toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+        setLoadingCancel(null);
+        return;
+      }
+      const res = await fetch("/functions/v1/delete-user-data", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ cancel: true, userId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPendingDeletions((prev) => prev.filter((u) => u.id !== userId));
+        toast({ title: "Deletion Canceled", description: "User's account deletion request has been canceled." });
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to cancel deletion.", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: (error as Error).message, variant: "destructive" });
+    } finally {
+      setLoadingCancel(null);
+    }
+  };
 
   const handleTestDatabase = async () => {
     setIsLoading(true);
@@ -79,6 +134,45 @@ const AdminDashboard = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      {/* Pending Deletions Section */}
+      <div className="mb-8 p-4 border rounded bg-muted/20">
+        <h2 className="text-xl font-semibold mb-2">Pending Account Deletions</h2>
+        {pendingDeletions.length === 0 ? (
+          <p className="text-muted-foreground">No pending deletion requests.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr>
+                <th className="text-left">Type</th>
+                <th className="text-left">User ID</th>
+                <th className="text-left">Email</th>
+                <th className="text-left">Scheduled Deletion</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingDeletions.map((u) => (
+                <tr key={u.id}>
+                  <td>{u.type}</td>
+                  <td>{u.id}</td>
+                  <td>{u.email || u.email_encrypted || "-"}</td>
+                  <td>{u.deletion_requested_at ? new Date(new Date(u.deletion_requested_at).getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleString() : "-"}</td>
+                  <td>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCancelDeletion(u.id)}
+                      disabled={loadingCancel === u.id}
+                    >
+                      {loadingCancel === u.id ? "Canceling..." : "Cancel Deletion"}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
