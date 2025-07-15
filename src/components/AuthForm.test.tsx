@@ -162,8 +162,13 @@ describe('AuthForm', () => {
     );
 
     // Always click the Sign Up tab before querying fields
-    fireEvent.click(screen.getByRole('tab', { name: /Sign Up/i }));
-    const fullNameInput = await screen.findByPlaceholderText('Enter your full name');
+    const signUpTab = await screen.findByRole('tab', { name: /Sign Up/i });
+    fireEvent.click(signUpTab);
+    // Wait for the sign-up form to be visible
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Enter your full name')).toBeInTheDocument();
+    });
+    const fullNameInput = screen.getByPlaceholderText('Enter your full name');
     const unitNumberInput = screen.getByPlaceholderText('e.g., 15B, 302, etc.');
     const emailInput = screen.getByPlaceholderText('Enter your email');
     const passwordInput = screen.getByPlaceholderText('Create a password');
@@ -217,8 +222,13 @@ describe('AuthForm', () => {
     );
 
     // Always click the Sign Up tab before querying fields
-    fireEvent.click(screen.getByRole('tab', { name: /Sign Up/i }));
-    const fullNameInput = await screen.findByPlaceholderText('Enter your full name');
+    const signUpTab = await screen.findByRole('tab', { name: /Sign Up/i });
+    fireEvent.click(signUpTab);
+    // Wait for the sign-up form to be visible
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Enter your full name')).toBeInTheDocument();
+    });
+    const fullNameInput = screen.getByPlaceholderText('Enter your full name');
     const unitNumberInput = screen.getByPlaceholderText('e.g., 15B, 302, etc.');
     const emailInput = screen.getByPlaceholderText('Enter your email');
     const passwordInput = screen.getByPlaceholderText('Create a password');
