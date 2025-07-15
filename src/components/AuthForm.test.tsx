@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { vi } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
+import { ProtectedRoute } from './ProtectedRoute';
 
 // Mock supabase functions
 const mockSignInWithPassword = vi.fn();
@@ -237,4 +238,47 @@ describe('AuthForm', () => {
       expect(mockedUseNavigate).not.toHaveBeenCalled();
     });
   }, 10000);
+});
+
+describe('ProtectedRoute', () => {
+  it('redirects to /login if not authenticated', async () => {
+    // Mock no session
+    supabase.auth.getSession = vi.fn().mockResolvedValue({ data: { session: null } });
+    render(
+      <BrowserRouter>
+        <ProtectedRoute requiredRole="admin"><div>Admin Content</div></ProtectedRoute>
+      </BrowserRouter>
+    );
+    await waitFor(() => {
+      expect(screen.getByText('Loading...')).toBeInTheDocument();
+    });
+  });
+
+  it('redirects to /unauthorized if role does not match', async () => {
+    // Mock session and wrong role
+    supabase.auth.getSession = vi.fn().mockResolvedValue({ data: { session: { user: { id: 'user-1' } } } });
+    supabase.from = vi.fn(() => ({ select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { role: 'resident' }, error: null }) }) }) }));
+    render(
+      <BrowserRouter>
+        <ProtectedRoute requiredRole="admin"><div>Admin Content</div></ProtectedRoute>
+      </BrowserRouter>
+    );
+    await waitFor(() => {
+      expect(screen.queryByText('Admin Content')).not.toBeInTheDocument();
+    });
+  });
+
+  it('renders children if role matches', async () => {
+    // Mock session and correct role
+    supabase.auth.getSession = vi.fn().mockResolvedValue({ data: { session: { user: { id: 'user-2' } } } });
+    supabase.from = vi.fn(() => ({ select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { role: 'admin' }, error: null }) }) }) }));
+    render(
+      <BrowserRouter>
+        <ProtectedRoute requiredRole="admin"><div>Admin Content</div></ProtectedRoute>
+      </BrowserRouter>
+    );
+    await waitFor(() => {
+      expect(screen.getByText('Admin Content')).toBeInTheDocument();
+    });
+  });
 });

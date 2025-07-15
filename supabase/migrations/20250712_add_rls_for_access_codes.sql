@@ -8,12 +8,11 @@ ON public.access_codes
 FOR SELECT
 USING (resident_id = auth.uid());
 
--- Policy for security guards to view access codes (assuming guards are authenticated and have a specific role/permission)
--- For now, this policy allows all authenticated users to select, which will be refined with proper guard roles.
+-- Policy for security guards to view access codes (refined to check for guard role)
 CREATE POLICY "Security guards can view access codes"
 ON public.access_codes
 FOR SELECT
-USING (true); -- This needs to be refined with proper RBAC for guards
+USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'guard'));
 
 -- Policy to allow the system to insert access codes (e.g., by generate-access-code function)
 -- This policy assumes the function runs with a service role key, bypassing RLS, but is good practice.
