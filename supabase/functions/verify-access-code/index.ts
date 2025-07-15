@@ -13,9 +13,32 @@ interface AuditDetails {
   status?: string;
 }
 
+// Simple in-memory rate limiter (not persistent, for demonstration)
+const rateLimitMap = new Map<string, { count: number; lastAttempt: number }>();
+const RATE_LIMIT_ATTEMPTS = 5;
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // Rate limiting by IP
+  const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || req.headers.get("client-ip") || "unknown";
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip) || { count: 0, lastAttempt: 0 };
+  if (now - entry.lastAttempt > RATE_LIMIT_WINDOW_MS) {
+    // Reset window
+    entry.count = 0;
+  }
+  entry.count += 1;
+  entry.lastAttempt = now;
+  rateLimitMap.set(ip, entry);
+  if (entry.count > RATE_LIMIT_ATTEMPTS) {
+    return new Response(JSON.stringify({ error: "Too many failed attempts. Please try again later." }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 429,
+    });
   }
 
   try {

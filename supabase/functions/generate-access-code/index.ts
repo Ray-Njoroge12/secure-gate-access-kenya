@@ -21,6 +21,28 @@ serve(async (req) => {
 
     const { visitor_id, resident_id, visitor_email } = await req.json();
 
+    // Check for existing unused, unexpired access code for this visitor
+    const { data: existingCode, error: existingError } = await supabase
+      .from("access_codes")
+      .select("*")
+      .eq("visitor_id", visitor_id)
+      .eq("used_at", null)
+      .gte("expires_at", new Date().toISOString())
+      .single();
+
+    if (existingError && existingError.code !== "PGRST116") { // PGRST116: No rows found
+      throw existingError;
+    }
+
+    if (existingCode) {
+      // If a valid code exists, resend the PIN to the visitor
+      // (Assume the PIN is not stored, so inform the resident to request a new code if lost)
+      return new Response(JSON.stringify({ access_code: existingCode, message: "A valid access code already exists for this visitor." }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     // 1. Generate a cryptographically secure 6-digit PIN
     const pin = Math.floor(100000 + Math.random() * 900000).toString();
 
