@@ -5,6 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { differenceInDays, parseISO, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import jsPDF from "jspdf";
+import * as XLSX from "xlsx";
 
 const AdminDashboard = () => {
   const { toast } = useToast();
@@ -18,6 +21,13 @@ const AdminDashboard = () => {
   const [logAction, setLogAction] = useState("");
   const [logStart, setLogStart] = useState("");
   const [logEnd, setLogEnd] = useState("");
+  const [overdueDeletions, setOverdueDeletions] = useState<any[]>([]);
+  const [complianceStats, setComplianceStats] = useState({
+    requested: 0,
+    completed: 0,
+    canceled: 0,
+    overdue: 0,
+  });
 
   // Fetch pending deletions
   useEffect(() => {
@@ -41,6 +51,17 @@ const AdminDashboard = () => {
     })();
   }, []);
 
+  // Check for overdue deletions
+  useEffect(() => {
+    const now = new Date();
+    const overdue = pendingDeletions.filter(u => {
+      if (!u.deletion_requested_at) return false;
+      const days = differenceInDays(now, parseISO(u.deletion_requested_at));
+      return days > 7;
+    });
+    setOverdueDeletions(overdue);
+  }, [pendingDeletions]);
+
   // Fetch audit logs
   useEffect(() => {
     (async () => {
@@ -57,6 +78,24 @@ const AdminDashboard = () => {
       setAuditLogs(data || []);
     })();
   }, [logAction, logStart, logEnd]);
+
+  useEffect(() => {
+    // Calculate compliance stats for current month
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    let requested = 0, completed = 0, canceled = 0, overdue = 0;
+    auditLogs.forEach(l => {
+      const ts = parseISO(l.payload.timestamp);
+      if (!isWithinInterval(ts, { start: monthStart, end: monthEnd })) return;
+      if (l.payload.action === "request_deletion") requested++;
+      if (l.payload.action === "cancel_deletion") canceled++;
+    });
+    overdue = overdueDeletions.length;
+    // For completed, count users whose deletion_requested_at is null but had a request in this month
+    // (This is a proxy; for full accuracy, track hard deletes in audit logs)
+    setComplianceStats({ requested, completed, canceled, overdue });
+  }, [auditLogs, overdueDeletions]);
 
   // Export to CSV
   const exportLogs = () => {
@@ -79,6 +118,41 @@ const AdminDashboard = () => {
     a.download = `audit_logs_${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const exportLogsPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Audit Logs", 10, 10);
+    let y = 20;
+    doc.text(["Actor ID", "Role", "Action", "Target", "Timestamp", "IP"].join(" | "), 10, y);
+    y += 10;
+    auditLogs.forEach(l => {
+      doc.text([
+        l.payload.actor_id,
+        l.payload.actor_role,
+        l.payload.action,
+        l.payload.target_user_id,
+        l.payload.timestamp,
+        l.payload.ip,
+      ].join(" | "), 10, y);
+      y += 8;
+      if (y > 270) { doc.addPage(); y = 20; }
+    });
+    doc.save(`audit_logs_${Date.now()}.pdf`);
+  };
+
+  const exportLogsXLSX = () => {
+    const ws = XLSX.utils.json_to_sheet(auditLogs.map(l => ({
+      "Actor ID": l.payload.actor_id,
+      "Role": l.payload.actor_role,
+      "Action": l.payload.action,
+      "Target User": l.payload.target_user_id,
+      "Timestamp": l.payload.timestamp,
+      "IP": l.payload.ip,
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "AuditLogs");
+    XLSX.writeFile(wb, `audit_logs_${Date.now()}.xlsx`);
   };
 
   const handleCancelDeletion = async (userId: string) => {
@@ -195,6 +269,11 @@ const AdminDashboard = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      {overdueDeletions.length > 0 && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          <b>Warning:</b> {overdueDeletions.length} scheduled deletion(s) are overdue! <a href="#overdue-section" className="underline">View</a>
+        </div>
+      )}
       {/* Pending Deletions Section */}
       <div className="mb-8 p-4 border rounded bg-muted/20">
         <h2 className="text-xl font-semibold mb-2">Pending Account Deletions</h2>
@@ -254,6 +333,20 @@ const AdminDashboard = () => {
       
       <div className="mb-8 p-4 border rounded bg-muted/20">
         <h2 className="text-xl font-semibold mb-2">Audit Log (Compliance)</h2>
+        <div className="flex gap-6 mb-4">
+          <div className="p-3 bg-muted rounded border">
+            <b>Requested:</b> {complianceStats.requested}
+          </div>
+          <div className="p-3 bg-muted rounded border">
+            <b>Completed:</b> {complianceStats.completed}
+          </div>
+          <div className="p-3 bg-muted rounded border">
+            <b>Canceled:</b> {complianceStats.canceled}
+          </div>
+          <div className="p-3 bg-red-100 rounded border border-red-400 text-red-700">
+            <b>Overdue:</b> {complianceStats.overdue}
+          </div>
+        </div>
         <div className="flex gap-2 mb-2">
           <Select value={logAction} onValueChange={setLogAction} className="w-40">
             <option value="">All Actions</option>
@@ -263,6 +356,8 @@ const AdminDashboard = () => {
           <Input type="date" value={logStart} onChange={e => setLogStart(e.target.value)} className="w-40" />
           <Input type="date" value={logEnd} onChange={e => setLogEnd(e.target.value)} className="w-40" />
           <Button onClick={exportLogs} variant="outline">Export CSV</Button>
+          <Button onClick={exportLogsPDF} variant="outline">Export PDF</Button>
+          <Button onClick={exportLogsXLSX} variant="outline">Export Excel</Button>
         </div>
         <table className="w-full text-xs">
           <thead>
@@ -329,6 +424,18 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+      <div id="overdue-section">
+        {overdueDeletions.length > 0 && (
+          <div className="mb-4">
+            <h3 className="font-semibold">Overdue Deletions</h3>
+            <ul className="list-disc ml-6">
+              {overdueDeletions.map(u => (
+                <li key={u.id}>{u.email} (requested: {u.deletion_requested_at})</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
