@@ -1,4 +1,4 @@
-const CACHE_NAME = 'secure-gate-cache-v1';
+const CACHE_NAME = 'secure-gate-cache-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -28,7 +28,16 @@ self.addEventListener('fetch', (event) => {
         if (response) {
           return response;
         }
-        return fetch(event.request);
+        return fetch(event.request).catch(() => {
+          // Offline fallback for /security-guard
+          if (event.request.mode === 'navigate' && event.request.url.includes('/security-guard')) {
+            return caches.match('/security-guard');
+          }
+          // Offline fallback for index
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+        });
       })
   );
 });
