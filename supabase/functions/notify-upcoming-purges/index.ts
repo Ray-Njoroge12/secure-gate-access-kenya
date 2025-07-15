@@ -33,35 +33,45 @@ serve(async (_req) => {
   // Find regular visitors (more than 1 visit) whose data will be deleted in 3 days
   const { data: regulars } = await supabase.rpc("find_regular_visitors_for_purge", { notify_date: soon.toISOString() });
   for (const v of regulars || []) {
-    await sendEmail([v.email], "Upcoming Data Deletion", `<p>Your visitor data will be deleted in 3 days due to privacy policy.</p>`);
+    const lang = v.language || "en";
+    const subject = lang === "sw" ? "Arifa ya Kufutwa kwa Taarifa Zako" : "Upcoming Data Deletion";
+    const html = lang === "sw"
+      ? `<p>Taarifa zako za mgeni zitafutwa baada ya siku 3 kulingana na sera ya faragha.</p>`
+      : `<p>Your visitor data will be deleted in 3 days due to privacy policy.</p>`;
+    await sendEmail([v.email], subject, html);
     await supabase.from("audit_logs").insert({
       event_type: "visitor_purge_notification",
-      payload: { email: v.email, timestamp: new Date().toISOString() },
+      payload: { email: v.email, language: lang, timestamp: new Date().toISOString() },
       created_at: new Date().toISOString(),
     });
   }
 
   // Find residents with scheduled deletion in 3 days
-  const { data: residents } = await supabase.from("residents").select("email, deletion_requested_at").not("deletion_requested_at", "is", null);
+  const { data: residents } = await supabase.from("residents").select("email, deletion_requested_at, language").not("deletion_requested_at", "is", null);
   for (const r of residents || []) {
     const delDate = new Date(r.deletion_requested_at);
     if (delDate.getTime() + 7 * 24 * 60 * 60 * 1000 - now.getTime() < 3 * 24 * 60 * 60 * 1000) {
-      await sendEmail([r.email], "Upcoming Account Deletion", `<p>Your account is scheduled for deletion in 3 days.</p>`);
+      const lang = r.language || "en";
+      const subject = lang === "sw" ? "Arifa ya Kufutwa kwa Akaunti" : "Upcoming Account Deletion";
+      const html = lang === "sw"
+        ? `<p>Akaunti yako imepangwa kufutwa baada ya siku 3.</p>`
+        : `<p>Your account is scheduled for deletion in 3 days.</p>`;
+      await sendEmail([r.email], subject, html);
       await supabase.from("audit_logs").insert({
         event_type: "resident_purge_notification",
-        payload: { email: r.email, timestamp: new Date().toISOString() },
+        payload: { email: r.email, language: lang, timestamp: new Date().toISOString() },
         created_at: new Date().toISOString(),
       });
     }
   }
 
-  // Notify admin of all upcoming purges
+  // Notify admin of all upcoming purges (always in English)
   const { data: admins } = await supabase.from("profiles").select("email").eq("role", "admin");
   const adminEmails = admins?.map(a => a.email).filter(Boolean) || [];
   await sendEmail(adminEmails, "Upcoming Data Purges", `<p>Upcoming data purges for residents and regular visitors in 3 days.</p>`);
   await supabase.from("audit_logs").insert({
     event_type: "admin_purge_notification",
-    payload: { count_regulars: (regulars || []).length, count_residents: (residents || []).length, timestamp: new Date().toISOString() },
+    payload: { count_regulars: (regulars || []).length, count_residents: (residents || []).length, language: "en", timestamp: new Date().toISOString() },
     created_at: new Date().toISOString(),
   });
 
