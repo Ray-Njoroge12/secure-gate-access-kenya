@@ -65,15 +65,21 @@ serve(async (_req) => {
     }
   }
 
-  // Notify admin of all upcoming purges (always in English)
-  const { data: admins } = await supabase.from("profiles").select("email").eq("role", "admin");
-  const adminEmails = admins?.map(a => a.email).filter(Boolean) || [];
-  await sendEmail(adminEmails, "Upcoming Data Purges", `<p>Upcoming data purges for residents and regular visitors in 3 days.</p>`);
-  await supabase.from("audit_logs").insert({
-    event_type: "admin_purge_notification",
-    payload: { count_regulars: (regulars || []).length, count_residents: (residents || []).length, language: "en", timestamp: new Date().toISOString() },
-    created_at: new Date().toISOString(),
-  });
+  // Notify admin of all upcoming purges in their preferred language
+  const { data: admins } = await supabase.from("profiles").select("email, language").eq("role", "admin");
+  for (const admin of admins || []) {
+    const lang = admin.language || "en";
+    const subject = lang === "sw" ? "Arifa ya Kufutwa kwa Data" : "Upcoming Data Purges";
+    const html = lang === "sw"
+      ? `<p>Kuna kufutwa kwa data kunakokuja kwa wakazi na wageni wa kawaida baada ya siku 3.</p>`
+      : `<p>Upcoming data purges for residents and regular visitors in 3 days.</p>`;
+    await sendEmail([admin.email], subject, html);
+    await supabase.from("audit_logs").insert({
+      event_type: "admin_purge_notification",
+      payload: { email: admin.email, language: lang, timestamp: new Date().toISOString() },
+      created_at: new Date().toISOString(),
+    });
+  }
 
   return new Response("Notifications sent.");
 });
