@@ -161,17 +161,20 @@ describe('AuthForm', () => {
     );
 
     fireEvent.click(screen.getByRole('tab', { name: /Sign Up/i }));
-    const fullNameInput = await screen.findByPlaceholderText('Enter your full name');
-    const unitNumberInput = screen.getByPlaceholderText('e.g., 15B, 302, etc.');
-    const emailInput = screen.getByPlaceholderText('Enter your email');
-    const passwordInput = screen.getByPlaceholderText('Create a password');
+    const signUpTabContent = await screen.findByTestId('signup-tab-content');
+    await waitFor(() => expect(signUpTabContent).not.toHaveAttribute('hidden'));
+    const fullNameInput = within(signUpTabContent).getByPlaceholderText('Enter your full name');
+    const unitNumberInput = within(signUpTabContent).getByPlaceholderText('e.g., 15B, 302, etc.');
+    const emailInput = within(signUpTabContent).getByPlaceholderText('Enter your email');
+    const passwordInput = within(signUpTabContent).getByPlaceholderText('Create a password');
+    const createAccountButton = within(signUpTabContent).getByRole('button', { name: /Create Account/i });
 
     fireEvent.change(fullNameInput, { target: { value: 'John Doe' } });
     fireEvent.change(unitNumberInput, { target: { value: '101' } });
     fireEvent.change(emailInput, { target: { value: 'new@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'newpassword' } });
 
-    fireEvent.click(screen.getByRole('button', { name: /Create Account/i }));
+    fireEvent.click(createAccountButton);
 
     await waitFor(() => {
       expect(mockSignUp).toHaveBeenCalledWith({
@@ -215,10 +218,12 @@ describe('AuthForm', () => {
     );
 
     fireEvent.click(screen.getByRole('tab', { name: /Sign Up/i }));
-    const fullNameInput = await screen.findByPlaceholderText('Enter your full name');
-    const unitNumberInput = screen.getByPlaceholderText('e.g., 15B, 302, etc.');
-    const emailInput = screen.getByPlaceholderText('Enter your email');
-    const passwordInput = screen.getByPlaceholderText('Create a password');
+    const signUpTabContent = await screen.findByTestId('signup-tab-content');
+    const fullNameInput = within(signUpTabContent).getByPlaceholderText('Enter your full name');
+    const unitNumberInput = within(signUpTabContent).getByPlaceholderText('e.g., 15B, 302, etc.');
+    const emailInput = within(signUpTabContent).getByPlaceholderText('Enter your email');
+    const passwordInput = within(signUpTabContent).getByPlaceholderText('Create a password');
+    const createAccountButton = within(signUpTabContent).getByRole('button', { name: /Create Account/i });
 
     fireEvent.change(fullNameInput, { target: { value: 'John Doe' } });
     fireEvent.change(unitNumberInput, { target: { value: '101' } });
