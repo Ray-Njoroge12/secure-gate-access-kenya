@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { QrCode, Search, CheckCircle, AlertTriangle, Shield } from "lucide-react";
+import { QrCode, Search, CheckCircle, AlertTriangle, Shield, Loader2, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { QRCodeScanner } from "@/components/QRCodeScanner";
@@ -97,19 +97,19 @@ const SecurityGuardInterface = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground">
-            <Shield className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold">Security Guard Interface</h1>
-            <p className="text-muted-foreground">Verify visitors and manage security</p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex flex-col">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-10 bg-primary text-primary-foreground shadow flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Shield className="h-7 w-7" />
+          <span className="font-bold text-lg">SecureGate Guard</span>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <Button variant="ghost" size="icon" onClick={async () => { await supabase.auth.signOut(); window.location.href = '/login'; }} aria-label="Logout">
+          <LogOut className="h-5 w-5" />
+        </Button>
+      </header>
+      <main className="flex-1 container mx-auto px-2 py-4 flex flex-col gap-6">
+        <div className="flex flex-col gap-6">
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -129,10 +129,11 @@ const SecurityGuardInterface = () => {
                   value={qrInput}
                   onChange={(e) => setQrInput(e.target.value)}
                   disabled={scanning}
+                  className="text-lg py-3"
                 />
                 <Button
                   variant={scanning ? "secondary" : "outline"}
-                  className="mt-2"
+                  className="mt-2 w-full text-lg py-3"
                   onClick={() => setScanning((s) => !s)}
                 >
                   {scanning ? "Stop Scanning" : "Scan with Camera"}
@@ -154,13 +155,13 @@ const SecurityGuardInterface = () => {
               <Button 
                 onClick={handleVerifyQR}
                 disabled={isLoading || scanning}
-                className="w-full"
+                className="w-full text-lg py-3"
               >
+                {isLoading ? <Loader2 className="animate-spin h-5 w-5 mr-2 inline" /> : null}
                 {isLoading ? "Verifying..." : "Verify Access"}
               </Button>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -179,16 +180,14 @@ const SecurityGuardInterface = () => {
                   placeholder="Enter visitor name or ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  className="text-lg py-3"
                 />
               </div>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full text-lg py-3">
                 Search Visitors
               </Button>
             </CardContent>
           </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -207,50 +206,17 @@ const SecurityGuardInterface = () => {
                   placeholder="Describe the incident..."
                   value={incident}
                   onChange={(e) => setIncident(e.target.value)}
+                  className="text-lg py-3"
                 />
               </div>
-              <Button 
-                onClick={handleReportIncident}
-                disabled={isLoading}
-                variant="destructive"
-                className="w-full"
-              >
+              <Button onClick={handleReportIncident} disabled={isLoading} className="w-full text-lg py-3">
+                {isLoading ? <Loader2 className="animate-spin h-5 w-5 mr-2 inline" /> : null}
                 {isLoading ? "Reporting..." : "Report Incident"}
               </Button>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-primary" />
-                <CardTitle>System Status</CardTitle>
-              </div>
-              <CardDescription>
-                Current system status and alerts
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">System Status</span>
-                <Badge className="bg-green-100 text-green-800">Online</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Database</span>
-                <Badge className="bg-green-100 text-green-800">Connected</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">QR Scanner</span>
-                <Badge className="bg-green-100 text-green-800">Ready</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Network</span>
-                <Badge className="bg-green-100 text-green-800">Stable</Badge>
-              </div>
-            </CardContent>
-          </Card>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
