@@ -1,7 +1,7 @@
 describe('Resident Sign Up Flow', () => {
   it('allows a new resident to sign up', () => {
     const uniqueEmail = `testuser_${Date.now()}@example.com`;
-    cy.visit('/');
+    cy.visit('/auth');
     // Wait for the sign-in form to be visible
     cy.get('form').should('exist');
     // Try to click the Sign Up tab by role or text
