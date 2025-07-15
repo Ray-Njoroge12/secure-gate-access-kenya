@@ -63,6 +63,21 @@ serve(async (req) => {
     const { data: resident } = await supabase.from("residents").select("email").eq("id", targetUserId).single();
     if (resident && resident.email) userEmail = resident.email;
 
+    // Enhanced audit logging
+    const logEntry = {
+      actor_id: userId,
+      actor_role: profile?.role || null,
+      action: body.cancel ? "cancel_deletion" : "request_deletion",
+      target_user_id: targetUserId,
+      timestamp: new Date().toISOString(),
+      ip: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || null,
+    };
+    await supabase.from("audit_logs").insert({
+      event_type: "user_deletion",
+      payload: logEntry,
+      created_at: new Date().toISOString(),
+    });
+
     if (body.cancel) {
       // Cancel deletion request
       await supabase.from("residents").update({ deletion_requested_at: null }).eq("id", targetUserId);

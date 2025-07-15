@@ -3,12 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 
 const AdminDashboard = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [pendingDeletions, setPendingDeletions] = useState<any[]>([]);
   const [loadingCancel, setLoadingCancel] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+  const [sortOrder, setSortOrder] = useState("asc");
 
   // Fetch pending deletions
   useEffect(() => {
@@ -131,13 +136,42 @@ const AdminDashboard = () => {
     }
   };
 
+  const filteredDeletions = pendingDeletions
+    .filter((u) =>
+      (!roleFilter || u.role === roleFilter) &&
+      (!search || u.email.toLowerCase().includes(search.toLowerCase()))
+    )
+    .sort((a, b) => {
+      if (!a.deletion_requested_at || !b.deletion_requested_at) return 0;
+      const aDate = new Date(a.deletion_requested_at).getTime();
+      const bDate = new Date(b.deletion_requested_at).getTime();
+      return sortOrder === "asc" ? aDate - bDate : bDate - aDate;
+    });
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
       {/* Pending Deletions Section */}
       <div className="mb-8 p-4 border rounded bg-muted/20">
         <h2 className="text-xl font-semibold mb-2">Pending Account Deletions</h2>
-        {pendingDeletions.length === 0 ? (
+        <div className="flex gap-2 mb-4">
+          <Input
+            placeholder="Search by email..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-64"
+          />
+          <Select value={roleFilter} onValueChange={setRoleFilter} className="w-40">
+            <option value="">All Roles</option>
+            <option value="resident">Resident</option>
+            <option value="visitor">Visitor</option>
+          </Select>
+          <Select value={sortOrder} onValueChange={setSortOrder} className="w-40">
+            <option value="asc">Sort: Soonest First</option>
+            <option value="desc">Sort: Latest First</option>
+          </Select>
+        </div>
+        {filteredDeletions.length === 0 ? (
           <p className="text-muted-foreground">No pending deletion requests.</p>
         ) : (
           <table className="w-full text-sm">
@@ -151,7 +185,7 @@ const AdminDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {pendingDeletions.map((u) => (
+              {filteredDeletions.map((u) => (
                 <tr key={u.id}>
                   <td>{u.type}</td>
                   <td>{u.id}</td>
