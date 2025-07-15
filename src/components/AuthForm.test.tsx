@@ -295,21 +295,11 @@ describe('ProtectedRoute', () => {
 });
 
 describe('SignUpForm (isolated)', () => {
-  it('handles successful sign up', async () => {
-    mockSignUp.mockResolvedValueOnce({
-      data: { user: { id: 'user-123', email: 'new@example.com' } },
-      error: null,
-    });
-    mockInvoke.mockResolvedValueOnce({
-      data: { encryptedPhoneNumber: 'encrypted-phone' },
-      error: null,
-    });
-    mockInsert.mockResolvedValueOnce({ data: null, error: null });
-
-    // Render only the sign-up form (not the full AuthForm with tabs)
+  it('calls onSignUp with form data on submit', async () => {
+    const mockOnSignUp = vi.fn().mockResolvedValue(undefined);
     render(
       <BrowserRouter>
-        <SignUpForm />
+        <SignUpForm onSignUp={mockOnSignUp} />
       </BrowserRouter>
     );
 
@@ -326,8 +316,12 @@ describe('SignUpForm (isolated)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }));
 
     await waitFor(() => {
-      expect(mockSignUp).toHaveBeenCalled();
-      expect(mockInsert).toHaveBeenCalled();
+      expect(mockOnSignUp).toHaveBeenCalledWith({
+        fullName: 'Test User',
+        unitNumber: '101A',
+        email: 'new@example.com',
+        password: 'password123',
+      });
     });
   });
 });
