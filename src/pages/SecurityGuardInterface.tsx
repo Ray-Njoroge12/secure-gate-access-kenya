@@ -8,12 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { QrCode, Search, CheckCircle, AlertTriangle, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { QRCodeScanner } from "@/components/QRCodeScanner";
 
 const SecurityGuardInterface = () => {
   const [qrInput, setQrInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [incident, setIncident] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const { toast } = useToast();
 
   const handleVerifyQR = async () => {
@@ -126,11 +128,32 @@ const SecurityGuardInterface = () => {
                   placeholder="Enter QR code here..."
                   value={qrInput}
                   onChange={(e) => setQrInput(e.target.value)}
+                  disabled={scanning}
                 />
+                <Button
+                  variant={scanning ? "secondary" : "outline"}
+                  className="mt-2"
+                  onClick={() => setScanning((s) => !s)}
+                >
+                  {scanning ? "Stop Scanning" : "Scan with Camera"}
+                </Button>
+                {scanning && (
+                  <QRCodeScanner
+                    onResult={(result) => {
+                      setQrInput(result);
+                      setScanning(false);
+                      setTimeout(() => handleVerifyQR(), 300); // auto-verify after scan
+                    }}
+                    onError={(err) => {
+                      toast({ title: "Scan Error", description: err.message, variant: "destructive" });
+                    }}
+                    className="mt-4"
+                  />
+                )}
               </div>
               <Button 
                 onClick={handleVerifyQR}
-                disabled={isLoading}
+                disabled={isLoading || scanning}
                 className="w-full"
               >
                 {isLoading ? "Verifying..." : "Verify Access"}
