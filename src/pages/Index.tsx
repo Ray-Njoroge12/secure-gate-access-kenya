@@ -8,16 +8,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { QRCodeGenerator } from "@/components/QRCodeGenerator";
 
 interface Invitation {
   status: string;
   access_codes: unknown[]; // Further refinement of access_codes type can be done if needed
+  id: string; // Added for QR code viewer
+  visitors?: { full_name: string }; // Added for QR code viewer
 }
 
 const Index = () => {
   const { toast } = useToast();
   const [activeInvitationsCount, setActiveInvitationsCount] = useState(0);
   const [qrCodesGeneratedCount, setQrCodesGeneratedCount] = useState(0);
+  const [activeInvitations, setActiveInvitations] = useState<Invitation[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,6 +68,19 @@ const Index = () => {
       supabase.removeChannel(invitationChannel);
     };
   }, [toast]);
+
+  useEffect(() => {
+    const fetchActiveInvitations = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("get-resident-invitations");
+        if (error) throw error;
+        setActiveInvitations((data || []).filter((inv: Invitation) => inv.status === "accepted" && inv.access_codes && inv.access_codes.length > 0));
+      } catch (error) {
+        setActiveInvitations([]);
+      }
+    };
+    fetchActiveInvitations();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -191,7 +208,7 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* QR Code Viewer Section (placeholder for now) */}
+        {/* QR Code Viewer Section */}
         <div className="mb-8">
           <Card className="w-full max-w-md mx-auto">
             <CardHeader>
@@ -204,8 +221,19 @@ const Index = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* TODO: Map over active invitations and show QR codes */}
-              <div className="text-muted-foreground text-center">Coming soon: View and share QR codes for your guests here.</div>
+              {activeInvitations.length === 0 ? (
+                <div className="text-muted-foreground text-center">No active invitations with QR codes.</div>
+              ) : (
+                <div className="flex flex-col gap-4 items-center">
+                  {activeInvitations.map((inv) => (
+                    <div key={inv.id} className="flex flex-col items-center gap-2 p-2 border rounded-lg w-full bg-muted">
+                      <div className="font-semibold text-sm">{inv.visitors?.full_name || "Guest"}</div>
+                      <QRCodeGenerator value={inv.access_codes[0].qr_token} size={160} />
+                      <div className="text-xs text-muted-foreground">Show this QR code to security at the gate</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
