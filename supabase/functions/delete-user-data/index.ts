@@ -24,26 +24,20 @@ serve(async (req) => {
     }
     const userId = user.id;
 
-    // Delete or anonymize user data
-    // Residents table
-    await supabase.from("residents").delete().eq("id", userId);
-    // Visitors table
-    await supabase.from("visitors").delete().eq("id", userId);
-    // Invitations
-    await supabase.from("visit_invitations").delete().or(`resident_id.eq.${userId},visitor_id.eq.${userId}`);
-    // Access codes
-    await supabase.from("access_codes").delete().or(`resident_id.eq.${userId},visitor_id.eq.${userId}`);
+    // Soft-delete: set deletion_requested_at=NOW() for residents and visitors
+    await supabase.from("residents").update({ deletion_requested_at: new Date().toISOString() }).eq("id", userId);
+    await supabase.from("visitors").update({ deletion_requested_at: new Date().toISOString() }).eq("id", userId);
 
-    // Log the deletion
+    // Log the deletion request
     await supabase.from("audit_logs").insert({
       user_id: userId,
-      action: "delete_user_data",
+      action: "request_delete_user_data",
       entity_type: "user",
       entity_id: userId,
-      details: { message: "User requested data deletion" },
+      details: { message: "User requested data deletion (soft-delete)" },
     });
 
-    return new Response(JSON.stringify({ message: "User data deleted successfully." }), {
+    return new Response(JSON.stringify({ message: "User data deletion requested. Data will be deleted after the grace period." }), {
       headers: { "Content-Type": "application/json" },
       status: 200,
     });
