@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { vi } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
 import { ProtectedRoute } from './ProtectedRoute';
+import { SignUpForm } from './SignUpForm';
 
 // Mock supabase functions
 const mockSignInWithPassword = vi.fn();
@@ -289,6 +290,44 @@ describe('ProtectedRoute', () => {
     );
     await waitFor(() => {
       expect(screen.getByText('Admin Content')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('SignUpForm (isolated)', () => {
+  it('handles successful sign up', async () => {
+    mockSignUp.mockResolvedValueOnce({
+      data: { user: { id: 'user-123', email: 'new@example.com' } },
+      error: null,
+    });
+    mockInvoke.mockResolvedValueOnce({
+      data: { encryptedPhoneNumber: 'encrypted-phone' },
+      error: null,
+    });
+    mockInsert.mockResolvedValueOnce({ data: null, error: null });
+
+    // Render only the sign-up form (not the full AuthForm with tabs)
+    render(
+      <BrowserRouter>
+        <SignUpForm />
+      </BrowserRouter>
+    );
+
+    const fullNameInput = await screen.findByPlaceholderText('Enter your full name');
+    const unitNumberInput = screen.getByPlaceholderText('e.g., 15B, 302, etc.');
+    const emailInput = screen.getByPlaceholderText('Enter your email');
+    const passwordInput = screen.getByPlaceholderText('Create a password');
+
+    fireEvent.change(fullNameInput, { target: { value: 'Test User' } });
+    fireEvent.change(unitNumberInput, { target: { value: '101A' } });
+    fireEvent.change(emailInput, { target: { value: 'new@example.com' } });
+    fireEvent.change(passwordInput, { target: { value: 'password123' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }));
+
+    await waitFor(() => {
+      expect(mockSignUp).toHaveBeenCalled();
+      expect(mockInsert).toHaveBeenCalled();
     });
   });
 });
