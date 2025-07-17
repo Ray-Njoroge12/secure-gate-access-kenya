@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Mail, Lock, User, Home } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Home, Phone } from "lucide-react";
 
 export function AuthForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -105,8 +105,8 @@ export function AuthForm() {
           .single();
 
         if (communityError) {
-          console.error('Community fetch error:', communityError);
           // Continue without community assignment for now
+          // TODO: Implement proper error handling for community fetch
         }
 
         // Encrypt phone number before storing
@@ -132,7 +132,6 @@ export function AuthForm() {
           });
 
         if (profileError) {
-          console.error('Profile creation error:', profileError);
           toast({
             title: "Profile creation failed",
             description: profileError.message,
@@ -250,6 +249,23 @@ export function AuthForm() {
                       name="unitNumber"
                       placeholder="e.g., 15B, 302, etc."
                       value={formData.unitNumber}
+                      onChange={handleInputChange}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="signup-phone">Phone Number</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="signup-phone"
+                      name="phone"
+                      type="tel"
+                      placeholder="Enter your phone number"
+                      value={formData.phone}
                       onChange={handleInputChange}
                       className="pl-10"
                       required

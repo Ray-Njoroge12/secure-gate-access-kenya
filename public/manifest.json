@@ -1,6 +1,16 @@
 {
-  "short_name": "Guard App",
-  "name": "SecureGate Guard Interface",
+  "name": "Secure Gate Access Kenya",
+  "short_name": "Gate Access",
+  "description": "Secure visitor management system for residential communities in Kenya",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0F172A",
+  "background_color": "#FFFFFF",
+  "orientation": "portrait",
+  "scope": "/",
+  "categories": ["security", "utilities", "productivity"],
+  "lang": "en-US",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/favicon.ico",
@@ -10,16 +20,50 @@
     {
       "src": "/placeholder.svg",
       "type": "image/svg+xml",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "/placeholder.svg",
       "type": "image/svg+xml",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
-  "start_url": "/security-guard",
-  "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "shortcuts": [
+    {
+      "name": "Scan QR Code",
+      "short_name": "QR Scan",
+      "description": "Quickly scan visitor QR codes",
+      "url": "/security-guard",
+      "icons": [
+        {
+          "src": "/placeholder.svg",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "PIN Entry",
+      "short_name": "PIN",
+      "description": "Enter visitor PIN code",
+      "url": "/security-guard",
+      "icons": [
+        {
+          "src": "/placeholder.svg",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "web+gateaccess",
+      "url": "/access?code=%s"
+    }
+  ]
 }
