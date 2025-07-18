@@ -9,7 +9,11 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:system": "vitest run tests/system-integrity-tests.ts",
+    "test:system-report": "tsx tests/run-system-tests.ts",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -67,6 +71,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
+    "@faker-js/faker": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
@@ -85,6 +90,7 @@
     "postcss": "^8.4.47",
     "supabase": "^2.30.4",
     "tailwindcss": "^3.4.11",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1",
