@@ -19,15 +19,15 @@ function generatePhoneNumber(): string {
 
 // Test data storage
 interface TestData {
-  residents: any[];
-  communities: any[];
-  invitations: any[];
-  visitors: any[];
-  accessCodes: any[];
-  guards: any[];
+  residents: Array<Record<string, unknown>>;
+  communities: Array<Record<string, unknown>>;
+  invitations: Array<Record<string, unknown>>;
+  visitors: Array<Record<string, unknown>>;
+  accessCodes: Array<Record<string, unknown>>;
+  guards: Array<Record<string, unknown>>;
 }
 
-let testData: TestData = {
+const testData: TestData = {
   residents: [],
   communities: [],
   invitations: [],
@@ -157,7 +157,7 @@ describe('Visitor Management System - Comprehensive Integrity Tests', () => {
       expect(data?.length).toBeGreaterThan(0);
       
       // Verify data structure and encryption
-      data?.forEach((invitation: any) => {
+      data?.forEach((invitation: Record<string, unknown>) => {
         expect(invitation.id).toBeDefined();
         expect(invitation.status).toBeDefined();
         expect(invitation.visitor_full_name_encrypted).toBeDefined();
@@ -347,7 +347,7 @@ describe('Visitor Management System - Comprehensive Integrity Tests', () => {
       expect(auditLogs).toBeDefined();
       expect(auditLogs && auditLogs.length).toBeGreaterThan(0);
       
-      auditLogs?.forEach((log: any) => {
+      auditLogs?.forEach((log: Record<string, unknown>) => {
         expect(log.event_type).toBe('ACCESS_VERIFICATION');
         expect(log.details).toBeDefined();
         expect(log.created_at).toBeDefined();
@@ -432,7 +432,7 @@ describe('Visitor Management System - Comprehensive Integrity Tests', () => {
     
     it('should handle concurrent invitation creation', async () => {
       const concurrentRequests = 10;
-      const promises: Promise<any>[] = [];
+      const promises: Promise<unknown>[] = [];
       
       for (let i = 0; i < concurrentRequests; i++) {
         const invitationData = {
@@ -466,7 +466,7 @@ describe('Visitor Management System - Comprehensive Integrity Tests', () => {
       const bulkSize = 5;
       
       // Create multiple invitations first
-      const invitations: any[] = [];
+      const invitations: Array<Record<string, unknown>> = [];
       for (let i = 0; i < bulkSize; i++) {
         const { data } = await supabaseClient.functions.invoke('create-invitation', {
           body: {

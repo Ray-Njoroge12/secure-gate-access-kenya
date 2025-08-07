@@ -48,7 +48,7 @@ class SystemTestRunner {
       
       this.parseTestResults(testOutput);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Test execution failed:');
       console.error(error.stdout || error.message);
       

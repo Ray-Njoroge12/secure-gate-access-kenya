@@ -21,7 +21,7 @@ export function QRCodeScanner({ onScanSuccess, onError, isActive = false }: QRCo
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const scannerRef = useRef<any>(null);
+  const scannerRef = useRef<number | null>(null);
   const { toast } = useToast();
 
   // Check for camera permission and enumerate devices
@@ -108,10 +108,10 @@ export function QRCodeScanner({ onScanSuccess, onError, isActive = false }: QRCo
 
         // Enable torch if supported
         const track = stream.getVideoTracks()[0];
-        const capabilities = track.getCapabilities();
+        const capabilities = track.getCapabilities() as MediaTrackCapabilities & { torch?: boolean };
         if (capabilities.torch) {
           await track.applyConstraints({
-            advanced: [{ torch: torchEnabled }]
+            advanced: [{ torch: torchEnabled } as MediaTrackConstraintSet]
           });
         }
 
@@ -184,7 +184,7 @@ export function QRCodeScanner({ onScanSuccess, onError, isActive = false }: QRCo
     return () => {
       stopScanning();
     };
-  }, [isActive, selectedDeviceId]);
+  }, [isActive, selectedDeviceId, startScanning, stopScanning]);
 
   return (
     <Card className="w-full max-w-md mx-auto">
