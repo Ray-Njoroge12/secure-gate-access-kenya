@@ -29,7 +29,7 @@ const SecurityGuardInterface = () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("verify-access-code", {
-        body: { qrToken: qrInput },
+        body: { code: qrInput },
       });
 
       if (error) throw error;

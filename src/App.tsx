@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import Unauthorized from "./pages/Unauthorized";
 import { VisitorRegistration } from "./pages/VisitorRegistration";
 import SecurityGuardInterface from "./pages/SecurityGuardInterface";
 import Auth from "./pages/Auth";
@@ -29,7 +30,10 @@ const App = () => (
             element={<ProtectedRoute><Index /></ProtectedRoute>}
           />
           <Route path="/visitor-registration" element={<VisitorRegistration />} />
-          <Route path="/security-guard" element={<SecurityGuardInterface />} />
+          <Route
+            path="/security-guard"
+            element={<ProtectedRoute requiredRole="guard"><SecurityGuardInterface /></ProtectedRoute>}
+          />
           <Route path="/auth" element={<Auth />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route
@@ -40,6 +44,7 @@ const App = () => (
             path="/resident-dashboard"
             element={<ProtectedRoute requiredRole="resident"><ResidentDashboard /></ProtectedRoute>}
           />
+          <Route path="/unauthorized" element={<Unauthorized />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

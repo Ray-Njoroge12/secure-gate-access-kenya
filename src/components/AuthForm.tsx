@@ -15,6 +15,7 @@ export function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [show2FAChallenge, setShow2FAChallenge] = useState(false);
   const [tempUserToken, setTempUserToken] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -147,7 +148,7 @@ export function AuthForm() {
     } catch (error: unknown) {
       toast({
         title: "Sign up failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred.",
+        description: (error as any)?.message || (error instanceof Error ? error.message : "An unknown error occurred."),
         variant: "destructive",
       });
     } finally {
@@ -195,10 +196,10 @@ export function AuthForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="signin" className="w-full">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'signin' | 'signup')} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              <TabsTrigger value="signin" onClick={() => setActiveTab('signin')}>Sign In</TabsTrigger>
+              <TabsTrigger value="signup" onClick={() => setActiveTab('signup')}>Sign Up</TabsTrigger>
             </TabsList>
             
             <TabsContent value="signin">

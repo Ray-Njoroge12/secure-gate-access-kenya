@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Camera, CameraOff, RotateCcw, Flashlight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { BrowserMultiFormatReader } from "@zxing/browser";
 
 interface QRCodeScannerProps {
   onScanSuccess: (data: string) => void;
@@ -18,160 +19,84 @@ export function QRCodeScanner({ onScanSuccess, onError, isActive = false }: QRCo
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
   const [torchEnabled, setTorchEnabled] = useState(false);
-  
+
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const scannerRef = useRef<number | null>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const { toast } = useToast();
 
-  // Check for camera permission and enumerate devices
   useEffect(() => {
-    const checkPermissions = async () => {
+    const init = async () => {
       try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        const videoDevices = (await BrowserMultiFormatReader.listVideoInputDevices()) || [];
         setDevices(videoDevices);
-        
         if (videoDevices.length > 0) {
-          setSelectedDeviceId(videoDevices[videoDevices.length - 1].deviceId); // Prefer back camera
+          setSelectedDeviceId(videoDevices[videoDevices.length - 1].deviceId);
         }
       } catch (err) {
-        setError("Unable to access camera devices");
-        onError?.("Unable to access camera devices");
+        setError("Unable to enumerate camera devices");
+        onError?.("Unable to enumerate camera devices");
       }
     };
-
-    checkPermissions();
+    init();
   }, [onError]);
 
-  // QR Code scanning logic using Canvas and ImageData
-  const scanQRCode = (canvas: HTMLCanvasElement, context: CanvasRenderingContext2D) => {
+  const startScanning = async () => {
     if (!videoRef.current) return;
 
-    const video = videoRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    
-    // Simple QR code pattern detection (basic implementation)
-    // In production, you'd use a proper QR scanning library like @zxing/library
-    try {
-      // This is a placeholder - you'd integrate with a proper QR library here
-      const data = detectQRPattern(imageData);
-      if (data) {
-        onScanSuccess(data);
-        stopScanning();
-        toast({
-          title: "QR Code Scanned",
-          description: "Access code detected successfully",
-        });
-      }
-    } catch (err) {
-      // Continue scanning
-    }
-  };
-
-  // Basic QR pattern detection (placeholder - replace with proper library)
-  const detectQRPattern = (imageData: ImageData): string | null => {
-    // This is a simplified detection - in reality you'd use a proper QR scanner
-    // For now, we'll simulate successful scanning after a few seconds
-    const randomData = Math.random();
-    if (randomData > 0.95) { // 5% chance to simulate successful scan
-      return `GATE_ACCESS_${Date.now()}`;
-    }
-    return null;
-  };
-
-  const startScanning = async () => {
     try {
       setError(null);
-      
-      const constraints: MediaStreamConstraints = {
-        video: {
-          deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
-          facingMode: selectedDeviceId ? undefined : { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      };
+      readerRef.current = new BrowserMultiFormatReader();
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      streamRef.current = stream;
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        setIsScanning(true);
-        setHasPermission(true);
+      const constraints: MediaTrackConstraints = selectedDeviceId
+        ? { deviceId: { exact: selectedDeviceId } }
+        : { facingMode: { ideal: "environment" } };
 
-        // Enable torch if supported
-        const track = stream.getVideoTracks()[0];
-        const capabilities = track.getCapabilities() as MediaTrackCapabilities & { torch?: boolean };
-        if (capabilities.torch) {
-          await track.applyConstraints({
-            advanced: [{ torch: torchEnabled } as MediaTrackConstraintSet]
-          });
-        }
-
-        // Start scanning loop
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        
-        const scanLoop = () => {
-          if (isScanning && context) {
-            scanQRCode(canvas, context);
-            scannerRef.current = requestAnimationFrame(scanLoop);
+      await readerRef.current.decodeFromVideoDevice(
+        selectedDeviceId || undefined,
+        videoRef.current,
+        (result, err, controls) => {
+          if (result) {
+            onScanSuccess(result.getText());
+            controls?.stop();
+            setIsScanning(false);
+            toast({ title: "QR Code Scanned", description: "Access code detected successfully" });
+          } else if (err) {
+            // frequent not-found errors are expected during scanning
           }
-        };
-        
-        scanLoop();
-      }
+        },
+        constraints
+      );
+
+      setIsScanning(true);
+      setHasPermission(true);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Camera access denied";
-      setError(errorMessage);
+      const message = err instanceof Error ? err.message : "Camera access denied";
+      setError(message);
       setHasPermission(false);
-      onError?.(errorMessage);
-      
-      toast({
-        title: "Camera Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      onError?.(message);
+      toast({ title: "Camera Error", description: message, variant: "destructive" });
     }
   };
 
-  const stopScanning = () => {
+  const stopScanning = async () => {
     setIsScanning(false);
-    
-    if (scannerRef.current) {
-      cancelAnimationFrame(scannerRef.current);
-    }
-    
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
+    try {
+      await readerRef.current?.reset();
+    } catch (_) {}
+    readerRef.current = null;
   };
 
   const toggleTorch = async () => {
-    if (streamRef.current) {
-      const track = streamRef.current.getVideoTracks()[0];
-      const capabilities = track.getCapabilities();
-      
-      if (capabilities.torch) {
-        const newTorchState = !torchEnabled;
-        await track.applyConstraints({
-          advanced: [{ torch: newTorchState }]
-        });
-        setTorchEnabled(newTorchState);
+    try {
+      const stream = (videoRef.current as any)?.srcObject as MediaStream | undefined;
+      const track = stream?.getVideoTracks?.()[0];
+      const capabilities = track?.getCapabilities?.();
+      if (track && capabilities && (capabilities as any).torch) {
+        const newState = !torchEnabled;
+        await track.applyConstraints({ advanced: [{ torch: newState }] as any });
+        setTorchEnabled(newState);
       }
-    }
+    } catch (_) {}
   };
 
   useEffect(() => {
@@ -180,11 +105,11 @@ export function QRCodeScanner({ onScanSuccess, onError, isActive = false }: QRCo
     } else {
       stopScanning();
     }
-
     return () => {
       stopScanning();
     };
-  }, [isActive, selectedDeviceId, startScanning, stopScanning]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, selectedDeviceId]);
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -193,9 +118,7 @@ export function QRCodeScanner({ onScanSuccess, onError, isActive = false }: QRCo
           <Camera className="h-5 w-5" />
           QR Code Scanner
         </CardTitle>
-        <CardDescription>
-          Point your camera at the QR code to scan access codes
-        </CardDescription>
+        <CardDescription>Point your camera at the QR code to scan access codes</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
@@ -213,26 +136,10 @@ export function QRCodeScanner({ onScanSuccess, onError, isActive = false }: QRCo
         )}
 
         <div className="relative aspect-square bg-black rounded-lg overflow-hidden">
-          <video
-            ref={videoRef}
-            className="w-full h-full object-cover"
-            autoPlay
-            playsInline
-            muted
-          />
-          
-          {isScanning && (
-            <div className="absolute inset-0 border-2 border-primary rounded-lg">
-              <div className="absolute top-4 left-4 w-8 h-8 border-l-4 border-t-4 border-primary"></div>
-              <div className="absolute top-4 right-4 w-8 h-8 border-r-4 border-t-4 border-primary"></div>
-              <div className="absolute bottom-4 left-4 w-8 h-8 border-l-4 border-b-4 border-primary"></div>
-              <div className="absolute bottom-4 right-4 w-8 h-8 border-r-4 border-b-4 border-primary"></div>
-              
-              <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-0.5 bg-primary opacity-50 animate-pulse"></div>
-            </div>
-          )}
-          
-          {!isScanning && !error && (
+          <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+          {isScanning ? (
+            <div className="absolute inset-0 border-2 border-primary rounded-lg" />
+          ) : (
             <div className="absolute inset-0 flex items-center justify-center text-white">
               <div className="text-center">
                 <CameraOff className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -257,11 +164,7 @@ export function QRCodeScanner({ onScanSuccess, onError, isActive = false }: QRCo
         )}
 
         <div className="flex gap-2">
-          <Button
-            onClick={isScanning ? stopScanning : startScanning}
-            className="flex-1"
-            variant={isScanning ? "destructive" : "default"}
-          >
+          <Button onClick={isScanning ? stopScanning : startScanning} className="flex-1" variant={isScanning ? "destructive" : "default"}>
             {isScanning ? (
               <>
                 <CameraOff className="h-4 w-4 mr-2" />
@@ -277,15 +180,10 @@ export function QRCodeScanner({ onScanSuccess, onError, isActive = false }: QRCo
 
           {isScanning && (
             <>
-              <Button
-                onClick={toggleTorch}
-                variant="outline"
-                size="icon"
-                title="Toggle flashlight"
-              >
-                <Flashlight className={`h-4 w-4 ${torchEnabled ? 'text-yellow-500' : ''}`} />
+              <Button onClick={toggleTorch} variant="outline" size="icon" title="Toggle flashlight">
+                <Flashlight className={`h-4 w-4 ${torchEnabled ? "text-yellow-500" : ""}`} />
               </Button>
-              
+
               <Button
                 onClick={() => {
                   stopScanning();
@@ -300,12 +198,6 @@ export function QRCodeScanner({ onScanSuccess, onError, isActive = false }: QRCo
             </>
           )}
         </div>
-
-        {isScanning && (
-          <p className="text-sm text-muted-foreground text-center">
-            Hold steady and ensure the QR code is clearly visible
-          </p>
-        )}
       </CardContent>
     </Card>
   );

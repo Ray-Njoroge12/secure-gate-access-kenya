@@ -78,54 +78,31 @@ export function PINEntry({
 
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (isLocked || pin.length < 4) return;
-    
+
     setIsVerifying(true);
-    
     try {
-      // Verify PIN against database
-      const { data: accessCode, error } = await supabase
-        .from('access_codes')
-        .select('*')
-        .eq('pin_code', pin)
-        .eq('is_active', true)
-        .single();
+      // Use secure backend verification (handles Argon2 hash, expiry, single-use, and auditing)
+      const { data, error } = await supabase.functions.invoke('verify-access-code', {
+        body: { code: pin },
+      });
 
-      if (error || !accessCode) {
-        handleFailedAttempt();
+      if (error || !data?.access_code) {
+        handleFailedAttempt(error?.message);
         return;
       }
 
-      // Check if PIN is still valid (not expired)
-      const now = new Date();
-      const expiresAt = new Date(accessCode.expires_at);
-      
-      if (now > expiresAt) {
-        handleFailedAttempt("Access code has expired");
-        return;
-      }
-
-      // Success
+      const accessCode = data.access_code;
       onSuccess(accessCode.qr_token);
       setPin("");
       setAttempts(0);
-      
+
       toast({
         title: "Access Granted",
         description: "PIN verified successfully",
         duration: 3000,
       });
-
-      // Log successful access
-      await supabase.from('access_logs').insert({
-        access_code_id: accessCode.id,
-        access_method: 'pin',
-        timestamp: new Date().toISOString(),
-        status: 'success'
-      });
-
-    } catch (error) {
+    } catch (_err) {
       handleFailedAttempt("Verification failed. Please try again.");
     } finally {
       setIsVerifying(false);

@@ -4,11 +4,21 @@ FROM node:18-alpine AS builder
 # Set working directory
 WORKDIR /app
 
+# Build-time environment for Vite
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_APP_NAME
+ARG VITE_APP_VERSION
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
+    VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY \
+    VITE_APP_NAME=$VITE_APP_NAME \
+    VITE_APP_VERSION=$VITE_APP_VERSION
+
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy source code
 COPY . .

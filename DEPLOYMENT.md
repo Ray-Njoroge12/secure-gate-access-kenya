@@ -131,12 +131,21 @@ npm i -g vercel
 # 2. Login to Vercel
 vercel login
 
-# 3. Set environment variables
+# 3. Link project
+vercel link --yes
+
+# 4. Set environment variables (Production)
 vercel env add VITE_SUPABASE_URL production
 vercel env add VITE_SUPABASE_ANON_KEY production
+vercel env add VITE_APP_NAME production <<< "Secure Gate Access Kenya"
+vercel env add VITE_APP_VERSION production <<< "1.0.0"
 
-# 4. Deploy to production
-vercel --prod
+# Optional (Staging)
+vercel env add VITE_SUPABASE_URL preview
+vercel env add VITE_SUPABASE_ANON_KEY preview
+
+# 5. Deploy to production
+vercel --prod --confirm
 
 # 5. Configure custom domain (optional)
 vercel domains add secure-gate-kenya.com
