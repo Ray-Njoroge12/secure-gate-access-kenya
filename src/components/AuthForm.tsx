@@ -8,10 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Mail, Lock, User, Home, Phone } from "lucide-react";
+import { TwoFactorVerify } from "@/components/auth/TwoFactorVerify";
 
 export function AuthForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [show2FAChallenge, setShow2FAChallenge] = useState(false);
+  const [tempUserToken, setTempUserToken] = useState<string>("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -42,17 +45,19 @@ export function AuthForm() {
 
       if (error) throw error;
 
-      // TODO: Implement 2FA challenge here if enabled for the user
-      // For example, if (data.user.app_metadata.requires_mfa) {
-      //   navigate("/mfa-challenge");
-      // } else {
-      //   toast({
-      //     title: "Welcome back!",
-      //     description: "You have been signed in successfully.",
-      //   });
-      //   navigate("/");
-      // }
+      // Check if user has 2FA enabled
+      const { data: has2FA } = await supabase
+        .rpc('user_has_2fa_enabled', { user_uuid: data.user.id });
 
+      if (has2FA) {
+        // Store token temporarily and show 2FA challenge
+        setTempUserToken(data.session.access_token);
+        setShow2FAChallenge(true);
+        setLoading(false);
+        return;
+      }
+
+      // No 2FA required, complete sign in
       toast({
         title: "Welcome back!",
         description: "You have been signed in successfully.",
@@ -149,6 +154,36 @@ export function AuthForm() {
       setLoading(false);
     }
   };
+
+  const handle2FASuccess = () => {
+    setShow2FAChallenge(false);
+    setTempUserToken("");
+    toast({
+      title: "Welcome back!",
+      description: "You have been signed in successfully.",
+    });
+    navigate("/");
+  };
+
+  const handle2FACancel = () => {
+    setShow2FAChallenge(false);
+    setTempUserToken("");
+    // Sign out the partially authenticated session
+    supabase.auth.signOut();
+  };
+
+  // Show 2FA verification if needed
+  if (show2FAChallenge) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <TwoFactorVerify
+          onSuccess={handle2FASuccess}
+          onCancel={handle2FACancel}
+          userToken={tempUserToken}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
