@@ -225,10 +225,8 @@ describe('AuthForm', () => {
   }, 10000);
 
   test('handles failed sign up', async () => {
-    mockSignUp.mockResolvedValueOnce({
-      data: null,
-      error: { message: 'User already exists' },
-    });
+    const mockError = new Error('User already exists');
+    mockSignUp.mockRejectedValueOnce(mockError);
 
     render(
       <BrowserRouter>

@@ -10,10 +10,22 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js')
       .then(registration => {
-        logger.info('SW registered: ', registration);
+        logger.info('Service Worker registered successfully');
+        
+        // Handle service worker updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                logger.info('New service worker installed, will activate automatically');
+              }
+            });
+          }
+        });
       })
       .catch(registrationError => {
-        logger.error('SW registration failed: ', registrationError);
+        logger.error('Service Worker registration failed: ', registrationError);
       });
   });
 }
