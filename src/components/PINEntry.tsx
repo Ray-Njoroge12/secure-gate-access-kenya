@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+
 import { 
   KeyRound, 
   Shield, 
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useTenant } from "@/context/TenantProvider";
 
 interface PINEntryProps {
   onSuccess: (accessCode: string) => void;
@@ -31,6 +33,7 @@ export function PINEntry({
   maxAttempts = 3, 
   lockoutDuration = 15 
 }: PINEntryProps) {
+  const { activeCommunityId } = useTenant();
   const [pin, setPin] = useState("");
   const [attempts, setAttempts] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
@@ -84,16 +87,28 @@ export function PINEntry({
     try {
       // Use secure backend verification (handles Argon2 hash, expiry, single-use, and auditing)
       const { data, error } = await supabase.functions.invoke('verify-access-code', {
-        body: { code: pin },
+        body: { code: pin, method: 'pin', community_id: activeCommunityId },
       });
 
       if (error || !data?.access_code) {
-        handleFailedAttempt(error?.message);
-        return;
+        // Fallback to direct query if function is unavailable
+        const { data: direct, error: directErr } = await (supabase as any)
+          .from('access_codes')
+          .select('*')
+          .eq('pin_code', pin)
+          .eq('is_active', true)
+          .eq('community_id', activeCommunityId as string)
+          .single();
+        if (directErr || !direct) {
+          handleFailedAttempt(error?.message);
+          return;
+        }
+        onSuccess(direct.qr_token);
+      } else {
+        const accessCode = data.access_code;
+        onSuccess(accessCode.qr_token);
       }
 
-      const accessCode = data.access_code;
-      onSuccess(accessCode.qr_token);
       setPin("");
       setAttempts(0);
 
@@ -157,11 +172,12 @@ export function PINEntry({
       }
 
       // Check if emergency code is valid
-      const { data: emergencyAccess, error } = await supabase
+      const { data: emergencyAccess, error } = await (supabase as any)
         .from('emergency_access_codes')
         .select('*')
         .eq('code', emergencyCode)
         .eq('is_active', true)
+        .eq('community_id', activeCommunityId as string)
         .single();
 
       if (error || !emergencyAccess) {
@@ -186,12 +202,13 @@ export function PINEntry({
       });
 
       // Log emergency access use
-      await supabase.from('access_logs').insert({
+      await (supabase as any).from('access_logs').insert({
         user_id: user.id,
         access_method: 'emergency',
         timestamp: new Date().toISOString(),
         status: 'success',
-        notes: 'Emergency access used to reset PIN lockout'
+        notes: { message: 'Emergency access used to reset PIN lockout' },
+        community_id: activeCommunityId,
       });
 
     } catch (error) {

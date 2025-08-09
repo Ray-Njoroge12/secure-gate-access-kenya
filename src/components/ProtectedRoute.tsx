@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
+import { useTenant } from "@/context/TenantProvider";
 
 interface ProtectedRouteProps {
   children: JSX.Element;
@@ -13,6 +14,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState(false);
+  const { activeCommunityId, memberships, loading: tenantLoading } = useTenant();
 
   useEffect(() => {
     const getSession = async () => {
@@ -36,28 +38,32 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   }, []);
 
   useEffect(() => {
-    const fetchUserRole = async () => {
-      if (session?.user) {
-        setRoleLoading(true);
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-        if (data && data.role) {
-          setUserRole(data.role);
-        } else {
-          setUserRole(null);
-        }
-        setRoleLoading(false);
-      }
-    };
-    if (session) {
-      fetchUserRole();
-    }
-  }, [session]);
+    const resolveRole = async () => {
+      if (!session?.user) return;
+      setRoleLoading(true);
 
-  if (loading || roleLoading) {
+      // Try to derive role from active membership (tenant-aware)
+      const membership = memberships.find(m => m.community_id === activeCommunityId);
+      if (membership?.role) {
+        setUserRole(membership.role);
+        setRoleLoading(false);
+        return;
+      }
+
+      // Fallback to legacy profiles.role if no membership found
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+      setUserRole(data?.role ?? null);
+      setRoleLoading(false);
+    };
+
+    resolveRole();
+  }, [session, memberships, activeCommunityId]);
+
+  if (loading || roleLoading || tenantLoading) {
     return <div>Loading...</div>;
   }
 

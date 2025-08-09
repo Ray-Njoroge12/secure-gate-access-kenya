@@ -20,6 +20,7 @@ import { QRCodeScanner } from "./QRCodeScanner";
 import { PINEntry } from "./PINEntry";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useTenant } from "@/context/TenantProvider";
 
 interface AccessVerificationSystemProps {
   onAccessGranted?: (accessData: AccessData) => void;
@@ -41,6 +42,7 @@ export function AccessVerificationSystem({
   onAccessGranted, 
   onAccessDenied 
 }: AccessVerificationSystemProps) {
+  const { activeCommunityId } = useTenant();
   const [activeTab, setActiveTab] = useState<'qr' | 'pin'>('qr');
   const [lastAccessData, setLastAccessData] = useState<AccessData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -50,11 +52,11 @@ export function AccessVerificationSystem({
   // Load recent access logs
   useEffect(() => {
     loadRecentAccess();
-  }, []);
+  }, [activeCommunityId]);
 
   const loadRecentAccess = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('access_logs')
         .select(`
           *,
@@ -65,6 +67,7 @@ export function AccessVerificationSystem({
             )
           )
         `)
+        .eq('community_id', activeCommunityId as string)
         .order('timestamp', { ascending: false })
         .limit(5);
 
@@ -90,32 +93,40 @@ export function AccessVerificationSystem({
     setIsProcessing(true);
     
     try {
-      // Verify access code and get visitor information
-      const { data: accessData, error } = await supabase
-        .from('access_codes')
-        .select(`
-          *,
-          visitors (full_name, phone_number, emergency_contact),
-          visit_invitations (
-            residents (full_name, unit_number)
-          )
-        `)
-        .eq(method === 'qr' ? 'qr_token' : 'pin_code', accessCode)
-        .eq('is_active', true)
-        .single();
+      // Use edge function to verify with tenant enforcement
+      const { data, error } = await supabase.functions.invoke('verify-access-code', {
+        body: { code: accessCode, method, community_id: activeCommunityId },
+      });
 
+      let accessData = data?.access_code;
+      // Fallback to direct table query if edge function not available
       if (error || !accessData) {
-        const errorMessage = "Invalid or expired access code";
-        onAccessDenied?.(errorMessage);
-        toast({
-          title: "Access Denied",
-          description: errorMessage,
-          variant: "destructive",
-        });
-        return;
+        const { data: direct, error: directErr } = await (supabase as any)
+          .from('access_codes')
+          .select(`
+            *,
+            visitors (full_name, phone_number, emergency_contact),
+            visit_invitations (
+              residents (full_name, unit_number)
+            )
+          `)
+          .eq(method === 'qr' ? 'qr_token' : 'pin_code', accessCode)
+          .eq('is_active', true)
+          .eq('community_id', activeCommunityId as string)
+          .single();
+        if (directErr || !direct) {
+          const errorMessage = "Invalid or expired access code";
+          onAccessDenied?.(errorMessage);
+          toast({
+            title: "Access Denied",
+            description: errorMessage,
+            variant: "destructive",
+          });
+          return;
+        }
+        accessData = direct;
       }
 
-      // Check if code is still valid
       const now = new Date();
       const expiresAt = new Date(accessData.expires_at);
       
@@ -146,12 +157,13 @@ export function AccessVerificationSystem({
       onAccessGranted?.(verifiedAccess);
 
       // Log the access
-      await supabase.from('access_logs').insert({
+      await (supabase as any).from('access_logs').insert({
         access_code_id: accessData.id,
         access_method: method,
         guard_id: (await supabase.auth.getUser()).data.user?.id,
         timestamp: now.toISOString(),
-        status: 'success'
+        status: 'success',
+        community_id: activeCommunityId,
       });
 
       // Update recent access

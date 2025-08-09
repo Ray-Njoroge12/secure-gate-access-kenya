@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { TenantSwitcher } from "@/components/TenantSwitcher";
 
 interface SharedNavigationProps {
   userRole: string;
@@ -198,6 +199,9 @@ export function SharedNavigation({ userRole, userName, userEmail }: SharedNaviga
                 )}
               </Button>
 
+              {/* Tenant Switcher */}
+              <TenantSwitcher />
+
               {/* User Profile */}
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
@@ -268,6 +272,11 @@ export function SharedNavigation({ userRole, userName, userEmail }: SharedNaviga
                         {getRoleName()}
                       </Badge>
                     </div>
+                  </div>
+
+                  {/* Tenant Switcher */}
+                  <div className="pb-2 border-b">
+                    <TenantSwitcher />
                   </div>
 
                   {/* Navigation Links */}

@@ -54,7 +54,7 @@ describe('Visitor Management System - Comprehensive Integrity Tests', () => {
       const testResident = testData.residents[0];
       
       const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: testResident.email,
+        email: String(testResident.email),
         password: 'TestPassword123!'
       });
 
@@ -266,7 +266,7 @@ describe('Visitor Management System - Comprehensive Integrity Tests', () => {
       const accessCode = testData.accessCodes[0];
       
       const { data, error } = await supabaseClient.functions.invoke('verify-access-code', {
-        body: { code: accessCode.qr_token }
+        body: { code: accessCode.qr_token, method: 'qr', community_id: testData.communities[0]?.id }
       });
 
       expect(error).toBeNull();
@@ -297,7 +297,7 @@ describe('Visitor Management System - Comprehensive Integrity Tests', () => {
       const accessCode = testData.accessCodes[0];
       
       const { error } = await supabaseClient.functions.invoke('verify-access-code', {
-        body: { code: accessCode.qr_token }
+        body: { code: accessCode.qr_token, method: 'qr', community_id: testData.communities[0]?.id }
       });
 
       expect(error).toBeDefined();
@@ -320,7 +320,7 @@ describe('Visitor Management System - Comprehensive Integrity Tests', () => {
         .eq('id', newAccessCode.id);
 
       const { data, error } = await supabaseClient.functions.invoke('verify-access-code', {
-        body: { code: testPin }
+        body: { code: testPin, method: 'pin', community_id: testData.communities[0]?.id }
       });
 
       expect(error).toBeNull();
@@ -329,7 +329,7 @@ describe('Visitor Management System - Comprehensive Integrity Tests', () => {
 
     it('should reject invalid PIN', async () => {
       const { error } = await supabaseClient.functions.invoke('verify-access-code', {
-        body: { code: '999999' }
+        body: { code: '999999', method: 'pin', community_id: testData.communities[0]?.id }
       });
 
       expect(error).toBeDefined();
@@ -557,7 +557,7 @@ describe('Visitor Management System - Comprehensive Integrity Tests', () => {
 
       for (const code of malformedCodes) {
         const { error } = await supabaseClient.functions.invoke('verify-access-code', {
-          body: { code }
+          body: { code, method: 'qr', community_id: testData.communities[0]?.id }
         });
         expect(error).toBeDefined();
       }
@@ -698,6 +698,7 @@ async function createTestAccessCode(visitorId: string) {
     .insert({
       visitor_id: visitorId,
       resident_id: testData.residents[0].id,
+      community_id: testData.communities[0]?.id,
       pin_hash: 'temp-hash',
       qr_token: 'temp-token',
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
