@@ -16,6 +16,7 @@ import { LoginForm } from "./components/LoginForm";
 import AdminDashboard from "./pages/AdminDashboard";
 import ResidentDashboard from "./pages/ResidentDashboard";
 import { useServiceWorker } from "./hooks/useServiceWorker";
+import { TenantProvider } from "./context/TenantProvider";
 
 const queryClient = new QueryClient();
 
@@ -68,7 +69,9 @@ const AppContent = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AppContent />
+    <TenantProvider>
+      <AppContent />
+    </TenantProvider>
   </QueryClientProvider>
 );
 

@@ -24,7 +24,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { code } = await req.json();
+    const { code, method, community_id } = await req.json();
 
     let accessCode;
     let verification_status = "failed";
@@ -46,8 +46,12 @@ serve(async (req) => {
     // }
 
     try {
-      // Check if the code is a JWT (QR code)
-      if (code.split(".").length === 3) {
+      // Determine method if not provided
+      const inferredIsQR = code && code.split(".").length === 3;
+      const resolvedMethod = (method === 'qr' || method === 'pin') ? method : (inferredIsQR ? 'qr' : 'pin');
+
+      // QR flow
+      if (resolvedMethod === 'qr') {
         if (!RS256_PUBLIC_KEY) {
           throw new Error("RS256_PUBLIC_KEY is not set.");
         }
@@ -67,11 +71,15 @@ serve(async (req) => {
         });
 
         // Check for replay attack using jti and fetch full details
-        const { data: fetchedAccessCode, error: fetchError } = await supabase
+        const effectiveCommunity = community_id ?? (payload as any)?.community_id ?? null;
+        let query = supabase
           .from("access_codes")
           .select("*, visitors(*), residents(*, communities(*))")
-          .eq("qr_token", code)
-          .single();
+          .eq("qr_token", code);
+        if (effectiveCommunity) {
+          query = query.eq('community_id', effectiveCommunity);
+        }
+        const { data: fetchedAccessCode, error: fetchError } = await query.single();
 
         if (fetchError || !fetchedAccessCode) {
           throw new Error("QR code not found or invalid.");
@@ -90,27 +98,33 @@ serve(async (req) => {
         audit_details.payload = payload;
 
       } else {
-        // Assume the code is a PIN
-        const { data: fetchedAccessCode, error: fetchError } = await supabase
+        // PIN flow
+        const nowIso = new Date().toISOString();
+        let pinQuery = supabase
           .from("access_codes")
           .select("*, visitors(*), residents(*, communities(*))")
-          .eq("used_at", null) // Only consider unused codes
-          .gte("expires_at", new Date().toISOString()) // Only consider unexpired codes
-          .limit(1) // Limit to one result for efficiency
-          .single();
+          .is("used_at", null) // Only consider unused codes
+          .gte("expires_at", nowIso); // Only consider unexpired codes
+        if (community_id) {
+          pinQuery = pinQuery.eq('community_id', community_id);
+        }
+        const { data: candidates, error: fetchError } = await pinQuery;
 
-        if (fetchError || !fetchedAccessCode) {
+        if (fetchError || !candidates || candidates.length === 0) {
           throw new Error("Invalid PIN or PIN not found.");
         }
 
-        // Verify the provided PIN against the stored hash
-        const isPinValid = await argon2.verify(fetchedAccessCode.pin_hash, code);
-
-        if (!isPinValid) {
+        // Find matching hash within tenant-scoped candidates
+        for (const candidate of candidates) {
+          if (candidate.pin_hash && await argon2.verify(candidate.pin_hash, code)) {
+            accessCode = candidate;
+            break;
+          }
+        }
+        if (!accessCode) {
           throw new Error("Invalid PIN.");
         }
 
-        accessCode = fetchedAccessCode;
         audit_details.type = "PIN";
       }
 
@@ -164,12 +178,12 @@ serve(async (req) => {
     accessCode.visitors.id_number = decryptedData.decryptedIdNumber;
     accessCode.visitors.phone_number = decryptedData.decryptedPhoneNumber;
 
-    return new Response(JSON.stringify({ access_code: accessCode }), {
+    return new Response(JSON.stringify({ access_code: accessCode, valid: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error.message, valid: false }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
     });

@@ -12,6 +12,7 @@ import { SharedNavigation } from "@/components/SharedNavigation";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
+import { useTenant } from "@/context/TenantProvider";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -25,6 +26,7 @@ interface SecurityStats {
 const SecurityGuardInterface = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { activeCommunityId } = useTenant();
   const [stats, setStats] = useState<SecurityStats>({
     todaysVisitors: 0,
     pendingVerifications: 0,
@@ -133,7 +135,7 @@ const SecurityGuardInterface = () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("verify-access-code", {
-        body: { code: qrInput },
+        body: { code: qrInput, method: 'qr', community_id: activeCommunityId },
       });
 
       if (error) throw error;
@@ -146,17 +148,22 @@ const SecurityGuardInterface = () => {
         variant: isValid ? "default" : "destructive",
       });
 
-      // Log the verification attempt
-      await supabase
-        .from("audit_logs")
-        .insert({
-          event_type: isValid ? "access_granted" : "access_denied",
-          details: { 
-            qr_code: qrInput,
-            verified: isValid,
-            guard_id: userProfile?.id 
-          },
-        });
+      // Log to tenant-scoped access logs
+      try {
+        await (supabase as any)
+          .from('access_logs')
+          .insert({
+            access_code_id: data?.access_code?.id ?? null,
+            access_method: 'qr',
+            guard_id: userProfile?.id ?? null,
+            timestamp: new Date().toISOString(),
+            status: isValid ? 'success' : 'failed',
+            community_id: activeCommunityId,
+            notes: { source: 'SecurityGuardInterface', qr_code: qrInput, verified: isValid }
+          });
+      } catch (e) {
+        console.warn('Failed to write access_logs:', e);
+      }
 
       setQrInput("");
     } catch (error) {
