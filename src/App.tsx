@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 import { VisitorRegistration } from "./pages/VisitorRegistration";
+import VisitorPortal from "./pages/VisitorPortal";
 import SecurityGuardInterface from "./pages/SecurityGuardInterface";
 import Auth from "./pages/Auth";
 import Analytics from "./pages/Analytics";
@@ -14,42 +15,60 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginForm } from "./components/LoginForm";
 import AdminDashboard from "./pages/AdminDashboard";
 import ResidentDashboard from "./pages/ResidentDashboard";
+import { useServiceWorker } from "./hooks/useServiceWorker";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+const AppContent = () => {
+  // Initialize service worker update handling
+  useServiceWorker();
+
+  return (
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Public Routes */}
           <Route path="/login" element={<LoginForm />} />
+          <Route path="/visitor-portal" element={<VisitorPortal />} />
+          <Route path="/visitor-registration" element={<VisitorRegistration />} />
+          <Route path="/auth" element={<Auth />} />
+          
+          {/* Protected Routes */}
           <Route
             path="/"
             element={<ProtectedRoute><Index /></ProtectedRoute>}
           />
-          <Route path="/visitor-registration" element={<VisitorRegistration />} />
           <Route
             path="/security-guard"
             element={<ProtectedRoute requiredRole="guard"><SecurityGuardInterface /></ProtectedRoute>}
           />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/analytics" element={<Analytics />} />
           <Route
             path="/admin"
-            element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} // Protect admin route
+            element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>}
           />
           <Route
             path="/resident-dashboard"
             element={<ProtectedRoute requiredRole="resident"><ResidentDashboard /></ProtectedRoute>}
           />
+          <Route
+            path="/analytics"
+            element={<ProtectedRoute requiredRole="admin"><Analytics /></ProtectedRoute>}
+          />
+          
+          {/* Error Routes */}
           <Route path="/unauthorized" element={<Unauthorized />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
+  );
+};
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AppContent />
   </QueryClientProvider>
 );
 

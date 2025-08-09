@@ -66,9 +66,10 @@ export function AuthForm() {
 
       navigate("/");
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       toast({
         title: "Sign in failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -146,9 +147,10 @@ export function AuthForm() {
         }
       }
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       toast({
         title: "Sign up failed",
-        description: (error as any)?.message || (error instanceof Error ? error.message : "An unknown error occurred."),
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

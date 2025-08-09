@@ -82,21 +82,25 @@ export function QRCodeScanner({ onScanSuccess, onError, isActive = false }: QRCo
     setIsScanning(false);
     try {
       await readerRef.current?.reset();
-    } catch (_) {}
+    } catch (error) {
+      console.error('Error stopping scanner:', error);
+    }
     readerRef.current = null;
   };
 
   const toggleTorch = async () => {
     try {
-      const stream = (videoRef.current as any)?.srcObject as MediaStream | undefined;
+      const stream = (videoRef.current as HTMLVideoElement)?.srcObject as MediaStream | undefined;
       const track = stream?.getVideoTracks?.()[0];
       const capabilities = track?.getCapabilities?.();
-      if (track && capabilities && (capabilities as any).torch) {
+      if (track && capabilities && 'torch' in capabilities) {
         const newState = !torchEnabled;
-        await track.applyConstraints({ advanced: [{ torch: newState }] as any });
+        await track.applyConstraints({ advanced: [{ torch: newState }] as MediaTrackConstraints });
         setTorchEnabled(newState);
       }
-    } catch (_) {}
+    } catch (error) {
+      console.error('Error toggling torch:', error);
+    }
   };
 
   useEffect(() => {
