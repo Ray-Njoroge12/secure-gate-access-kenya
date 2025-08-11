@@ -336,20 +336,21 @@ describe('Visitor Management System - Comprehensive Integrity Tests', () => {
       expect(error?.message).toContain('Invalid PIN');
     });
 
-    it('should log all access attempts in audit trail', async () => {
-      const { data: auditLogs } = await supabaseAdmin
-        .from('audit_logs')
+    it('should log all access attempts in tenant-scoped access_logs', async () => {
+      const { data: logs, error } = await supabaseAdmin
+        .from('access_logs')
         .select('*')
-        .eq('event_type', 'ACCESS_VERIFICATION')
         .order('created_at', { ascending: false })
         .limit(5);
 
-      expect(auditLogs).toBeDefined();
-      expect(auditLogs && auditLogs.length).toBeGreaterThan(0);
+      expect(error).toBeNull();
+      expect(logs).toBeDefined();
+      expect(logs && logs.length).toBeGreaterThan(0);
       
-      auditLogs?.forEach((log: Record<string, unknown>) => {
-        expect(log.event_type).toBe('ACCESS_VERIFICATION');
-        expect(log.details).toBeDefined();
+      logs?.forEach((log: any) => {
+        expect(log.community_id).toBeDefined();
+        expect(['qr','pin']).toContain(log.access_method);
+        expect(['success','failed']).toContain(log.status);
         expect(log.created_at).toBeDefined();
       });
     });

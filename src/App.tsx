@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,12 +18,18 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ResidentDashboard from "./pages/ResidentDashboard";
 import { useServiceWorker } from "./hooks/useServiceWorker";
 import { TenantProvider } from "./context/TenantProvider";
+import { initMonitoring } from "./utils/monitoring";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   // Initialize service worker update handling
   useServiceWorker();
+  
+  // Initialize monitoring on app start
+  useEffect(() => {
+    initMonitoring();
+  }, []);
 
   return (
     <TooltipProvider>

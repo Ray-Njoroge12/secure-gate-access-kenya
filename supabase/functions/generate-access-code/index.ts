@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
-import { SignJWT } from "https://deno.land/x/jose@v5.2.0/index.ts";
-import * as argon2 from "https://deno.land/x/argon2@v1.1.0/mod.ts";
+import { corsHeaders } from "./cors.ts";
+import { SignJWT, importPKCS8 } from "https://deno.land/x/jose@v5.2.0/index.ts";
 
 const RS256_PRIVATE_KEY = Deno.env.get("RS256_PRIVATE_KEY") ?? "";
 const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
@@ -19,32 +18,40 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { visitor_id, resident_id, visitor_email } = await req.json();
+    const { visitor_id, resident_id, visitor_email, community_id } = await req.json();
 
     // 1. Generate a cryptographically secure 6-digit PIN
     const pin = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 2. Hash the PIN using Argon2id
-    const pin_hash = await argon2.hash(pin);
+    // 2. Hash the PIN using Argon2 with fallback to SHA-256
+    let pin_hash: string;
+    
+    // Try to dynamically import argon2, but fall back to SHA-256 if unavailable
+    try {
+      const argon2 = await import("https://deno.land/x/argon2@v0.30.2/mod.ts");
+      if (argon2 && typeof argon2.hash === "function") {
+        pin_hash = await argon2.hash(pin);
+      } else {
+        throw new Error("argon2.hash not available");
+      }
+    } catch (_) {
+      // Fallback to SHA-256 for compatibility with edge runtime
+      const encoder = new TextEncoder();
+      const data = encoder.encode(pin);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      pin_hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
 
     // 3. Generate a signed JWT for the QR code (RS256)
     if (!RS256_PRIVATE_KEY) {
       throw new Error("RS256_PRIVATE_KEY is not set.");
     }
 
-    // Assuming RS256_PRIVATE_KEY is a valid PKCS8 PEM string
-    const privateKey = await crypto.subtle.importKey(
-      "pkcs8",
-      new TextEncoder().encode(RS256_PRIVATE_KEY),
-      {
-        name: "RSASSA-PKCS1-v1_5",
-        hash: "SHA-256",
-      },
-      false,
-      ["sign"]
-    );
+    // Import PKCS8 PEM private key for RS256
+    const privateKey = await importPKCS8(RS256_PRIVATE_KEY, "RS256");
 
-    const qr_token = await new SignJWT({ visitor_id, resident_id })
+    const qr_token = await new SignJWT({ visitor_id, resident_id, community_id })
       .setProtectedHeader({ alg: "RS256" })
       .setIssuedAt()
       .setExpirationTime('24h') // 24 hours expiration
@@ -57,6 +64,7 @@ serve(async (req) => {
       .insert({
         visitor_id,
         resident_id,
+        community_id,
         pin_hash,
         qr_token,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now

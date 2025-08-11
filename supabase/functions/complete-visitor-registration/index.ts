@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders } from "./cors.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -68,7 +68,12 @@ serve(async (req) => {
       throw updateError;
     }
 
-    // 5. Generate and send the access code
+    // 5. Generate and send the access code (tenant-aware)
+    // Derive community_id from the invitation's resident context
+    const community_id = (invitation as any)?.residents?.community_id
+      ?? (invitation as any)?.residents?.communities?.id
+      ?? null;
+
     const { error: accessCodeError } = await supabase.functions.invoke(
       "generate-access-code",
       {
@@ -76,6 +81,7 @@ serve(async (req) => {
           visitor_id: visitor.id,
           resident_id: invitation.resident_id,
           visitor_email: visitorEmail, // Pass the original visitor email
+          community_id,
         },
       }
     );
