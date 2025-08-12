@@ -33,15 +33,16 @@ describe('Phase 0 - Harness Baseline Tests', () => {
   describe('Environment & Client Validation', () => {
     
     it('should have valid Supabase connection', async () => {
-      const result = await supabaseAdmin.from('communities').select('count', { count: 'exact', head: true });
+      const result = await supabaseAdmin.from('communities').select('*', { count: 'exact', head: true });
       
       expect(result.error).toBeNull();
+      expect(typeof result.count).toBe('number');
       expect(result.count).toBeGreaterThanOrEqual(0);
       
       console.log(`📊 Communities table accessible, count: ${result.count}`);
     });
 
-    it('should confirm real query builder methods exist', () => {
+    it('should confirm real query builder methods exist', async () => {
       const builder = supabaseAdmin.from('communities');
       
       // These should all be functions, not mocked
@@ -52,6 +53,11 @@ describe('Phase 0 - Harness Baseline Tests', () => {
       const query = builder.select('*');
       expect(typeof query.eq).toBe('function');
       expect(typeof query.order).toBe('function');
+      
+      // Test actual execution
+      const result = await query.limit(1);
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('error');
       
       console.log('✅ Query builder methods confirmed real (not mocked)');
     });

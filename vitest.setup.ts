@@ -1,5 +1,4 @@
 import '@testing-library/jest-dom/vitest';
-import { vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
@@ -31,34 +30,6 @@ if (process.env.DEBUG_TESTS) {
   console.log('[vitest.setup] Mode:', isIntegration ? 'INTEGRATION' : isUnitTest ? 'UNIT/MOCK' : 'DEFAULT');
 }
 
-// Skip all mocking when in integration mode
-if (!isIntegration) {
-  // Only mock for unit tests; allow real Supabase client in integration runs
-  vi.mock('@supabase/supabase-js', () => ({
-    createClient: vi.fn(() => ({
-      auth: {
-        signInWithPassword: vi.fn(),
-        signUp: vi.fn(),
-        signOut: vi.fn(),
-        admin: { createUser: vi.fn(() => ({ data: { user: { id: 'mock-user-id', email: 'mock@example.com' } }, error: null })) }
-      },
-      functions: {
-        invoke: vi.fn(),
-      },
-      from: vi.fn(() => ({
-        insert: vi.fn(() => ({ select: () => ({ single: () => ({ data: {}, error: null }) }) })),
-        select: vi.fn(() => ({ data: [], error: null })),
-        update: vi.fn(() => ({ eq: () => ({ }) })),
-        delete: vi.fn(() => ({ in: () => ({}) })),
-        eq: vi.fn(() => ({ single: () => ({ data: {}, error: null }) })),
-      })),
-    })),
-  }));
-
-  vi.mock('@/integrations/supabase/client', async () => {
-    const actual = await vi.importActual('@supabase/supabase-js');
-    return {
-      supabase: (actual as typeof import('@supabase/supabase-js')).createClient('http://localhost', 'mock-key'),
-    };
-  });
-}
+// For now, disable all mocking to resolve integration test issues
+// Unit test mocking can be added later in separate unit test files
+console.log('[vitest.setup] Mocking disabled - using real Supabase clients for all tests');
