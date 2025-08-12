@@ -20,6 +20,7 @@ function loadEnvFile(file: string) {
 loadEnvFile(path.resolve('.env.local'));
 loadEnvFile(path.resolve('.env'));
 
+const isUnitTest = process.env.UNIT_TESTS === '1';
 const isIntegration = process.env.INTEGRATION_TESTS === '1';
 
 if (process.env.DEBUG_TESTS) {
@@ -27,9 +28,10 @@ if (process.env.DEBUG_TESTS) {
   // eslint-disable-next-line no-console
   console.log('[vitest.setup] ENV loaded: URL=', mask(process.env.VITE_SUPABASE_URL), ' ANON=', mask(process.env.VITE_SUPABASE_ANON_KEY), ' SRV=', mask(process.env.SUPABASE_SERVICE_ROLE_KEY));
   // eslint-disable-next-line no-console
-  console.log('[vitest.setup] Mode:', isIntegration ? 'INTEGRATION' : 'UNIT/MOCK');
+  console.log('[vitest.setup] Mode:', isIntegration ? 'INTEGRATION' : isUnitTest ? 'UNIT/MOCK' : 'DEFAULT');
 }
 
+// Skip all mocking when in integration mode
 if (!isIntegration) {
   // Only mock for unit tests; allow real Supabase client in integration runs
   vi.mock('@supabase/supabase-js', () => ({

@@ -10,8 +10,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:system": "vitest run tests/system-integrity-tests.ts",
-  "test:system-report": "tsx tests/run-system-tests.ts",
+  "test:system": "cross-env INTEGRATION_TESTS=1 vitest run tests/system-integrity-tests.ts",
+  "test:system:debug": "cross-env INTEGRATION_TESTS=1 DEBUG_TESTS=1 vitest run tests/system-integrity-tests.ts",
+  "test:system-report": "cross-env INTEGRATION_TESTS=1 tsx tests/run-system-tests.ts",
   "test:coverage": "vitest run --coverage",
     "verify:tenants": "node scripts/verify-tenant-isolation.js",
     "test:watch": "vitest",
@@ -66,7 +67,6 @@
     "react-qr-reader": "^3.0.0-beta-1",
     "react-resizable-panels": "^2.1.2",
     "react-router-dom": "^6.26.2",
-    "react-scanner-qr": "^1.0.0-alpha.11",
     "recharts": "^2.12.7",
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.5.2",
@@ -99,6 +99,12 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "cross-env": "^7.0.3"
+  },
+  "optionalDependencies": {},
+  "overrides": {},
+  "pnpm": {
+    "patchedDependencies": {}
   }
 }

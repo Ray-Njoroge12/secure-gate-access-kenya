@@ -45,7 +45,7 @@ class SystemTestRunner {
     try {
       console.log('\n📋 Running comprehensive system tests...\n');
       
-  const testOutput = execSync('npx vitest run tests/integration/**/*.test.ts tests/system-integrity-tests.ts --reporter=verbose', {
+  const testOutput = execSync('cross-env INTEGRATION_TESTS=1 npx vitest run tests/integration/**/*.test.ts tests/system-integrity-tests.ts --reporter=verbose', {
         encoding: 'utf8',
         stdio: 'pipe'
       });
