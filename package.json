@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:system": "vitest run tests/system-integrity-tests.ts",
-    "test:system-report": "tsx tests/run-system-tests.ts",
+  "test:system-report": "tsx tests/run-system-tests.ts",
+  "test:coverage": "vitest run --coverage",
     "verify:tenants": "node scripts/verify-tenant-isolation.js",
     "test:watch": "vitest",
     "test:ui": "vitest --ui"
