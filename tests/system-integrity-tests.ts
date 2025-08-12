@@ -3,7 +3,19 @@ import { createClient } from '@supabase/supabase-js';
 import { faker } from '@faker-js/faker';
 import crypto from 'crypto';
 
-// Test configuration
+// Test configuration & env preflight
+const requiredEnv = ['VITE_SUPABASE_URL','VITE_SUPABASE_ANON_KEY','SUPABASE_SERVICE_ROLE_KEY'] as const;
+const missingEnv = requiredEnv.filter(k => !process.env[k]);
+if (missingEnv.length) {
+  // eslint-disable-next-line no-console
+  console.warn(`⚠️  Skipping integration tests – missing env vars: ${missingEnv.join(', ')}`);
+  describe.skip('Visitor Management System - Comprehensive Integrity Tests', () => {
+    it('skipped due to missing environment variables', () => {
+      expect(missingEnv).toHaveLength(0);
+    });
+  });
+} 
+
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'http://localhost:54321';
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || '';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -11,6 +23,13 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 // Test clients
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+if (process.env.DEBUG_TESTS) {
+  // eslint-disable-next-line no-console
+  console.log('[DEBUG] Supabase URL:', SUPABASE_URL);
+  // eslint-disable-next-line no-console
+  console.log('[DEBUG] Service key present:', Boolean(SUPABASE_SERVICE_KEY));
+}
 
 // Helper function to generate phone numbers
 function generatePhoneNumber(): string {
