@@ -14,18 +14,22 @@ import path from 'path';
 interface TestResults {
   passed: number;
   failed: number;
-  total: number;
+  skipped: number;
+  total: number; // executed (passed+failed)
   duration: number;
   details: string[];
+  meta?: { rawTotal?: number };
 }
 
 class SystemTestRunner {
   private results: TestResults = {
     passed: 0,
     failed: 0,
+    skipped: 0,
     total: 0,
     duration: 0,
-    details: []
+    details: [],
+    meta: {}
   };
 
   async runTests(): Promise<void> {
@@ -41,23 +45,24 @@ class SystemTestRunner {
     try {
       console.log('\n📋 Running comprehensive system tests...\n');
       
-      const testOutput = execSync('npx vitest run tests/system-integrity-tests.ts --reporter=verbose', {
+  const testOutput = execSync('npx vitest run tests/integration/**/*.test.ts tests/system-integrity-tests.ts --reporter=verbose', {
         encoding: 'utf8',
         stdio: 'pipe'
       });
       
       this.parseTestResults(testOutput);
       
-    } catch (error: unknown) {
+    } catch (err: unknown) {
       console.error('❌ Test execution failed:');
-      console.error(error.stdout || error.message);
-      
-      // Try to parse results from error output (tests might have run but some failed)
-      if (error.stdout) {
-        this.parseTestResults(error.stdout);
+      if (typeof err === 'object' && err !== null) {
+        const anyErr = err as any;
+        console.error(anyErr.stdout || anyErr.message || anyErr);
+        if (anyErr.stdout) {
+          this.parseTestResults(String(anyErr.stdout));
+        }
+      } else {
+        console.error(String(err));
       }
-      
-      // If no tests were parsed, mark as failed
       if (this.results.total === 0) {
         this.results.failed = 1;
         this.results.total = 1;
@@ -100,19 +105,25 @@ class SystemTestRunner {
   }
 
   private parseTestResults(output: string): void {
-    // Parse vitest output to extract test results
     const lines = output.split('\n');
-    
     for (const line of lines) {
-      if (line.includes('✓') || line.includes('PASS')) {
+      const trimmed = line.trim();
+      if (/\b\d+ tests? \| \d+ skipped\b/i.test(trimmed)) {
+        // summary line like: "(24 tests | 24 skipped)"
+        const match = trimmed.match(/(\d+) tests? \| (\d+) skipped/);
+        if (match) {
+          this.results.meta!.rawTotal = Number(match[1]);
+          this.results.skipped = Number(match[2]);
+        }
+      }
+      if (trimmed.startsWith('✓') || trimmed.includes(' PASS ')) {
         this.results.passed++;
-        this.results.details.push(`✅ ${line.trim()}`);
-      } else if (line.includes('✗') || line.includes('FAIL')) {
+        this.results.details.push(`✅ ${trimmed}`);
+      } else if (trimmed.startsWith('✗') || trimmed.includes(' FAIL ')) {
         this.results.failed++;
-        this.results.details.push(`❌ ${line.trim()}`);
+        this.results.details.push(`❌ ${trimmed}`);
       }
     }
-    
     this.results.total = this.results.passed + this.results.failed;
   }
 
@@ -122,8 +133,13 @@ class SystemTestRunner {
     console.log('=' .repeat(60));
     
     console.log(`\n🎯 Overall Results:`);
-    console.log(`   Total Tests: ${this.results.total}`);
-    console.log(`   Passed: ${this.results.passed} ✅`);
+  const executed = this.results.total;
+  const skipped = this.results.skipped;
+  const rawTotal = this.results.meta?.rawTotal ?? (executed + skipped);
+  console.log(`   Total (raw): ${rawTotal}`);
+  console.log(`   Executed: ${executed}`);
+  console.log(`   Skipped: ${skipped}`);
+  console.log(`   Passed: ${this.results.passed} ✅`);
     console.log(`   Failed: ${this.results.failed} ${this.results.failed > 0 ? '❌' : ''}`);
     console.log(`   Success Rate: ${this.results.total > 0 ? Math.round((this.results.passed / this.results.total) * 100) : 0}%`);
     console.log(`   Duration: ${(this.results.duration / 1000).toFixed(2)}s`);
@@ -140,7 +156,10 @@ class SystemTestRunner {
     // System integrity assessment
     console.log(`\n🔍 System Integrity Assessment:`);
     
-    if (this.results.failed === 0) {
+    if (executed === 0) {
+      console.log(`   ⚠️ SYSTEM INTEGRITY: UNKNOWN (0 tests executed)`);
+      console.log(`   ⚠️ Environment or setup failure prevented execution.`);
+    } else if (this.results.failed === 0) {
       console.log(`   ✅ SYSTEM INTEGRITY: EXCELLENT`);
       console.log(`   ✅ All core functionalities working correctly`);
       console.log(`   ✅ Security measures properly implemented`);
@@ -163,7 +182,10 @@ class SystemTestRunner {
     // Recommendations
     console.log(`\n💡 Recommendations:`);
     
-    if (this.results.failed === 0) {
+    if (executed === 0) {
+      console.log(`   • Investigate environment (missing Supabase URL / keys?)`);
+      console.log(`   • Run with DEBUG_TESTS=1 for verbose setup logs`);
+    } else if (this.results.failed === 0) {
       console.log(`   • System is production-ready`);
       console.log(`   • Continue regular monitoring`);
       console.log(`   • Consider adding more edge case tests`);
