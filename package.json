@@ -10,10 +10,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-  "test:system": "cross-env INTEGRATION_TESTS=1 vitest run tests/system-integrity-tests.ts",
-  "test:system:debug": "cross-env INTEGRATION_TESTS=1 DEBUG_TESTS=1 vitest run tests/system-integrity-tests.ts",
-  "test:system-report": "cross-env INTEGRATION_TESTS=1 tsx tests/run-system-tests.ts",
-  "test:coverage": "vitest run --coverage",
+    "test:system": "cross-env INTEGRATION_TESTS=1 vitest run tests/system-integrity-tests.ts",
+    "test:system:debug": "cross-env INTEGRATION_TESTS=1 DEBUG_TESTS=1 vitest run tests/system-integrity-tests.ts",
+    "test:system-report": "cross-env INTEGRATION_TESTS=1 tsx tests/run-system-tests.ts",
+    "test:coverage": "vitest run --coverage",
     "verify:tenants": "node scripts/verify-tenant-isolation.js",
     "test:watch": "vitest",
     "test:ui": "vitest --ui"
@@ -55,10 +55,12 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.0",
     "date-fns": "^3.6.0",
+    "dotenv": "^17.2.1",
     "embla-carousel-react": "^8.2.0",
     "framer-motion": "^11.11.7",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.441.0",
+    "next-themes": "^0.4.6",
     "qrcode": "^1.5.3",
     "react": "^18.3.1",
     "react-day-picker": "8.10.1",
@@ -86,6 +88,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^7.0.3",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
@@ -99,10 +102,8 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1",
-    "vitest": "^3.2.4",
-    "cross-env": "^7.0.3"
+    "vitest": "^3.2.4"
   },
-  "optionalDependencies": {},
   "overrides": {},
   "pnpm": {
     "patchedDependencies": {}
