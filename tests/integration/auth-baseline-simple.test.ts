@@ -18,7 +18,7 @@ import {
 
 describe('Phase 1 - Core Data & Auth Baseline', () => {
   let testCommunityId: string;
-  let testUserIds: string[] = [];
+  const testUserIds: string[] = [];
   
   beforeAll(async () => {
     console.log('🔐 Phase 1 - Setting up authentication baseline tests...');

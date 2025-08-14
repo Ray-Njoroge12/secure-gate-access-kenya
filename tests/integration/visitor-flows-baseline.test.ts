@@ -43,8 +43,8 @@ describe('Phase 2 - Visitor Flows', () => {
   
   let testResidentId: string;
   let testCommunityId: string;
-  let testUserIds: string[] = [];
-  let testDataIds = {
+  const testUserIds: string[] = [];
+  const testDataIds = {
     invitationIds: [] as string[],
     visitorIds: [] as string[],
     accessCodeIds: [] as string[]

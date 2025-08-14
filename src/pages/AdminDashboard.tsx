@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Users, Shield, BarChart3, Settings, Key, Trash2, Database as DatabaseIcon, Download, Upload, Bell, CheckCircle, XCircle, Clock, Activity, Server, Network } from "lucide-react";
+import { AlertTriangle, Users, Shield, BarChart3, Settings, Key, Trash2, Database as DatabaseIcon, Download, Upload, Bell, CheckCircle, XCircle, Clock, Activity, Server, Network, Brain, FileBarChart, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { SharedNavigation } from "@/components/SharedNavigation";
@@ -354,7 +355,7 @@ const AdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle>System Status</CardTitle>
@@ -409,6 +410,64 @@ const AdminDashboard = () => {
                     <Trash2 className="h-4 w-4 mr-2" />
                     Clean Old Data
                   </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Advanced Analytics</CardTitle>
+                  <CardDescription>Phase 5: Business Intelligence & Reporting</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Link to="/advanced-analytics">
+                    <Button variant="outline" className="w-full justify-start">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Advanced Analytics Dashboard
+                    </Button>
+                  </Link>
+                  <Link to="/predictive-analytics">
+                    <Button variant="outline" className="w-full justify-start">
+                      <Brain className="h-4 w-4 mr-2" />
+                      AI Predictive Analytics
+                    </Button>
+                  </Link>
+                  <Link to="/compliance">
+                    <Button variant="outline" className="w-full justify-start">
+                      <FileBarChart className="h-4 w-4 mr-2" />
+                      Compliance & Reporting
+                    </Button>
+                  </Link>
+                  <Link to="/analytics">
+                    <Button variant="outline" className="w-full justify-start">
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Basic Analytics
+                    </Button>
+                  </Link>
+                  <div className="pt-2 border-t" />
+                  <Link to="/enterprise-dashboard">
+                    <Button variant="default" className="w-full justify-start bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700">
+                      <Shield className="h-4 w-4 mr-2" />
+                      Enterprise Dashboard
+                    </Button>
+                  </Link>
+                  <Link to="/enterprise-analytics">
+                    <Button variant="outline" className="w-full justify-start">
+                      <Network className="h-4 w-4 mr-2" />
+                      Enterprise Analytics Hub
+                    </Button>
+                  </Link>
+                  <Link to="/api-management">
+                    <Button variant="outline" className="w-full justify-start">
+                      <Key className="h-4 w-4 mr-2" />
+                      API Management Portal
+                    </Button>
+                  </Link>
+                  <Link to="/integration-health">
+                    <Button variant="outline" className="w-full justify-start">
+                      <Server className="h-4 w-4 mr-2" />
+                      Integration Health
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             </div>

@@ -12,7 +12,7 @@ export const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 // Debug logging helper
 export function debugLog(message: string, data?: any) {
   if (process.env.DEBUG_TESTS) {
-    // eslint-disable-next-line no-console
+     
     console.log(`[DB-Helper] ${message}`, data ? JSON.stringify(data, null, 2) : '');
   }
 }

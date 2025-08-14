@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Shield, Users, QrCode, BarChart, User, LogOut, Menu, X, Settings, Bell, Home, LayoutDashboard, BarChart3, AlertTriangle, FileText, Mail } from "lucide-react";
+import { Shield, Users, QrCode, BarChart, User, LogOut, Menu, X, Bell, Home, LayoutDashboard, BarChart3, AlertTriangle, FileText, Mail, Network, Activity, Building2, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -126,7 +126,11 @@ export function SharedNavigation({ userRole, userName, userEmail }: SharedNaviga
         return [
           { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
           { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-          { name: 'System', href: '/system', icon: Settings },
+          { name: 'Integration', href: '/enterprise-integration', icon: Network },
+          { name: 'Workflow', href: '/workflow-automation', icon: Activity },
+          { name: 'Locations', href: '/multi-location', icon: Building2 },
+          { name: 'Security', href: '/security-compliance', icon: Shield },
+          { name: 'API', href: '/api-management', icon: Server },
         ];
       }
       case 'guard': {
