@@ -1,0 +1,548 @@
+<testsuites id="" name="" tests="133" failures="0" skipped="133" errors="0" time="0.36501300000000014">
+<testsuite name="main.spec.ts" timestamp="2025-08-14T17:24:14.088Z" hostname="chromium" tests="19" failures="0" skipped="19" time="0" errors="0">
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should display login form on unauthorized access" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should show validation errors for invalid login" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should redirect to dashboard on successful login" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should register a new visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should validate required fields" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should check in a visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should check out a visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Invitation System › should create a new invitation" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Invitation System › should validate access code" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Analytics Dashboard › should display visitor analytics" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Analytics Dashboard › should filter analytics by date range" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › QR Code Functionality › should generate QR code for visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › QR Code Functionality › should scan QR code for check-in" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Mobile Responsiveness › should be responsive on mobile devices" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Mobile Responsiveness › should handle touch interactions" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Performance › should load pages within acceptable time" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Performance › should handle large visitor lists efficiently" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Accessibility › should meet WCAG accessibility standards" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Accessibility › should support screen readers" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="main.spec.ts" timestamp="2025-08-14T17:24:14.088Z" hostname="firefox" tests="19" failures="0" skipped="19" time="0" errors="0">
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should display login form on unauthorized access" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should show validation errors for invalid login" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should redirect to dashboard on successful login" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should register a new visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should validate required fields" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should check in a visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should check out a visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Invitation System › should create a new invitation" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Invitation System › should validate access code" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Analytics Dashboard › should display visitor analytics" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Analytics Dashboard › should filter analytics by date range" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › QR Code Functionality › should generate QR code for visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › QR Code Functionality › should scan QR code for check-in" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Mobile Responsiveness › should be responsive on mobile devices" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Mobile Responsiveness › should handle touch interactions" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Performance › should load pages within acceptable time" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Performance › should handle large visitor lists efficiently" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Accessibility › should meet WCAG accessibility standards" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Accessibility › should support screen readers" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="main.spec.ts" timestamp="2025-08-14T17:24:14.088Z" hostname="webkit" tests="19" failures="0" skipped="19" time="0" errors="0">
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should display login form on unauthorized access" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should show validation errors for invalid login" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should redirect to dashboard on successful login" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should register a new visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should validate required fields" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should check in a visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should check out a visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Invitation System › should create a new invitation" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Invitation System › should validate access code" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Analytics Dashboard › should display visitor analytics" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Analytics Dashboard › should filter analytics by date range" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › QR Code Functionality › should generate QR code for visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › QR Code Functionality › should scan QR code for check-in" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Mobile Responsiveness › should be responsive on mobile devices" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Mobile Responsiveness › should handle touch interactions" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Performance › should load pages within acceptable time" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Performance › should handle large visitor lists efficiently" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Accessibility › should meet WCAG accessibility standards" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Accessibility › should support screen readers" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="main.spec.ts" timestamp="2025-08-14T17:24:14.088Z" hostname="Mobile Chrome" tests="19" failures="0" skipped="19" time="0" errors="0">
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should display login form on unauthorized access" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should show validation errors for invalid login" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should redirect to dashboard on successful login" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should register a new visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should validate required fields" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should check in a visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should check out a visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Invitation System › should create a new invitation" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Invitation System › should validate access code" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Analytics Dashboard › should display visitor analytics" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Analytics Dashboard › should filter analytics by date range" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › QR Code Functionality › should generate QR code for visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › QR Code Functionality › should scan QR code for check-in" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Mobile Responsiveness › should be responsive on mobile devices" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Mobile Responsiveness › should handle touch interactions" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Performance › should load pages within acceptable time" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Performance › should handle large visitor lists efficiently" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Accessibility › should meet WCAG accessibility standards" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Accessibility › should support screen readers" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="main.spec.ts" timestamp="2025-08-14T17:24:14.088Z" hostname="Mobile Safari" tests="19" failures="0" skipped="19" time="0" errors="0">
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should display login form on unauthorized access" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should show validation errors for invalid login" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should redirect to dashboard on successful login" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should register a new visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should validate required fields" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should check in a visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should check out a visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Invitation System › should create a new invitation" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Invitation System › should validate access code" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Analytics Dashboard › should display visitor analytics" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Analytics Dashboard › should filter analytics by date range" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › QR Code Functionality › should generate QR code for visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › QR Code Functionality › should scan QR code for check-in" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Mobile Responsiveness › should be responsive on mobile devices" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Mobile Responsiveness › should handle touch interactions" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Performance › should load pages within acceptable time" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Performance › should handle large visitor lists efficiently" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Accessibility › should meet WCAG accessibility standards" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Accessibility › should support screen readers" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="main.spec.ts" timestamp="2025-08-14T17:24:14.088Z" hostname="Microsoft Edge" tests="19" failures="0" skipped="19" time="0" errors="0">
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should display login form on unauthorized access" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should show validation errors for invalid login" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should redirect to dashboard on successful login" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should register a new visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should validate required fields" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should check in a visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should check out a visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Invitation System › should create a new invitation" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Invitation System › should validate access code" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Analytics Dashboard › should display visitor analytics" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Analytics Dashboard › should filter analytics by date range" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › QR Code Functionality › should generate QR code for visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › QR Code Functionality › should scan QR code for check-in" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Mobile Responsiveness › should be responsive on mobile devices" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Mobile Responsiveness › should handle touch interactions" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Performance › should load pages within acceptable time" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Performance › should handle large visitor lists efficiently" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Accessibility › should meet WCAG accessibility standards" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Accessibility › should support screen readers" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="main.spec.ts" timestamp="2025-08-14T17:24:14.088Z" hostname="Google Chrome" tests="19" failures="0" skipped="19" time="0" errors="0">
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should display login form on unauthorized access" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should show validation errors for invalid login" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Authentication Flow › should redirect to dashboard on successful login" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should register a new visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should validate required fields" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should check in a visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Visitor Registration › should check out a visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Invitation System › should create a new invitation" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Invitation System › should validate access code" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Analytics Dashboard › should display visitor analytics" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Analytics Dashboard › should filter analytics by date range" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › QR Code Functionality › should generate QR code for visitor" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › QR Code Functionality › should scan QR code for check-in" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Mobile Responsiveness › should be responsive on mobile devices" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Mobile Responsiveness › should handle touch interactions" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Performance › should load pages within acceptable time" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Performance › should handle large visitor lists efficiently" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Accessibility › should meet WCAG accessibility standards" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Secure Gate Access - E2E Tests › Accessibility › should support screen readers" classname="main.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+</testsuites>

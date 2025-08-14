@@ -1,0 +1,143 @@
+config:
+  target: 'http://localhost:5173'
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up phase"
+    - duration: 120
+      arrivalRate: 10
+      name: "Ramp up load"
+    - duration: 300
+      arrivalRate: 20
+      name: "Sustained load"
+    - duration: 60
+      arrivalRate: 0
+      name: "Cool down"
+  defaults:
+    headers:
+      User-Agent: 'Artillery Load Test'
+  plugins:
+    expect: {}
+    metrics-by-endpoint: {}
+  engines:
+    http:
+      timeout: 30
+      maxSockets: 100
+
+scenarios:
+  - name: "Visitor Registration Flow"
+    weight: 40
+    flow:
+      - get:
+          url: "/"
+          expect:
+            - statusCode: 200
+            - hasHeader: "content-type"
+      - think: 2
+      - get:
+          url: "/visitor-registration"
+          expect:
+            - statusCode: 200
+      - think: 5
+      - post:
+          url: "/api/visitors"
+          json:
+            first_name: "{{ $randomString() }}"
+            last_name: "Test"
+            email: "{{ $randomString() }}@loadtest.com"
+            phone_number: "+254{{ $randomInt(700000000, 799999999) }}"
+            purpose_of_visit: "Load Testing"
+            host_name: "Test Host"
+          expect:
+            - statusCode: [200, 201]
+      - think: 1
+
+  - name: "Security Guard Interface"
+    weight: 30
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "security@example.com"
+            password: "testpassword"
+          expect:
+            - statusCode: 200
+          capture:
+            - json: "$.access_token"
+              as: "authToken"
+      - get:
+          url: "/security-guard"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - think: 3
+      - get:
+          url: "/api/visitors"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - think: 2
+
+  - name: "Analytics Dashboard"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "admin@example.com"
+            password: "adminpassword"
+          expect:
+            - statusCode: 200
+          capture:
+            - json: "$.access_token"
+              as: "authToken"
+      - get:
+          url: "/analytics"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - think: 5
+      - get:
+          url: "/api/analytics/visitors"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - think: 3
+
+  - name: "Invitation System"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "host@example.com"
+            password: "hostpassword"
+          expect:
+            - statusCode: 200
+          capture:
+            - json: "$.access_token"
+              as: "authToken"
+      - get:
+          url: "/invitations"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - think: 3
+      - post:
+          url: "/api/invitations"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            visitor_email: "{{ $randomString() }}@loadtest.com"
+            host_name: "Load Test Host"
+            scheduled_date: "2024-12-25"
+            scheduled_time: "14:00"
+            purpose: "Load Testing Meeting"
+          expect:
+            - statusCode: [200, 201]
+      - think: 2

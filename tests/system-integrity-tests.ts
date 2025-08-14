@@ -7,7 +7,7 @@ import crypto from 'crypto';
 const requiredEnv = ['VITE_SUPABASE_URL','VITE_SUPABASE_ANON_KEY','SUPABASE_SERVICE_ROLE_KEY'] as const;
 const missingEnv = requiredEnv.filter(k => !process.env[k]);
 if (missingEnv.length) {
-  // eslint-disable-next-line no-console
+   
   console.warn(`⚠️  Skipping integration tests – missing env vars: ${missingEnv.join(', ')}`);
   describe.skip('Visitor Management System - Comprehensive Integrity Tests', () => {
     it('skipped due to missing environment variables', () => {
@@ -25,9 +25,9 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 if (process.env.DEBUG_TESTS) {
-  // eslint-disable-next-line no-console
+   
   console.log('[DEBUG] Supabase URL:', SUPABASE_URL);
-  // eslint-disable-next-line no-console
+   
   console.log('[DEBUG] Service key present:', Boolean(SUPABASE_SERVICE_KEY));
 }
 

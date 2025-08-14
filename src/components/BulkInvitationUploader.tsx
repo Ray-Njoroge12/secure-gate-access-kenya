@@ -124,7 +124,7 @@ export const BulkInvitationUploader: React.FC = () => {
         return;
       }
 
-      let processed = 0;
+      const processed = 0;
       let errors = 0;
       let success = 0;
 

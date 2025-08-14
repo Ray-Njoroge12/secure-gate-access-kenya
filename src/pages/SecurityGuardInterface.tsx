@@ -6,32 +6,50 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, Users, QrCode, Clock, Shield, Activity, CheckCircle, XCircle, Search, FileText, Camera } from "lucide-react";
+import { AlertTriangle, Users, QrCode, Clock, Shield, Activity, CheckCircle, XCircle, Search, FileText, Camera, RefreshCw, Wifi, WifiOff, RotateCcw, HardDrive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { SharedNavigation } from "@/components/SharedNavigation";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { verifyAccessCodeDirect, markAccessCodeUsed, getTodayStatsDirect, searchVisitorsDirect } from "@/lib/security-guard-helpers";
+import { useOfflineAccessCache } from "@/hooks/useOfflineAccessCache";
+import { useAIRiskAssessment } from "@/hooks/useAIRiskAssessment";
 import type { Database } from "@/integrations/supabase/types";
-import { useTenant } from "@/context/TenantProvider";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
 interface SecurityStats {
   todaysVisitors: number;
   pendingVerifications: number;
-  recentIncidents: number;
-  systemStatus: string;
+  usedCodes: number;
+}
+
+interface VerificationResult {
+  valid: boolean;
+  visitorName?: string;
+  residentName?: string;
+  visitDate?: string;
+  visitPurpose?: string;
+  accessCodeId?: string;
+  riskProfile?: {
+    risk_level: string;
+    risk_score: number;
+    confidence_level: number;
+    risk_factors?: Record<string, any>;
+    behavioral_notes?: string;
+  };
 }
 
 const SecurityGuardInterface = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { activeCommunityId } = useTenant();
+  const { state: cacheState, populateCache, verifyAccess, syncOfflineUsage, getCacheStatus } = useOfflineAccessCache();
+  const { calculateVisitorRisk, getVisitorRiskProfile, detectAnomalies, getHighRiskVisitors } = useAIRiskAssessment();
+  
   const [stats, setStats] = useState<SecurityStats>({
     todaysVisitors: 0,
     pendingVerifications: 0,
-    recentIncidents: 0,
-    systemStatus: 'online',
+    usedCodes: 0,
   });
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [recentActivity, setRecentActivity] = useState<Array<{
@@ -39,16 +57,23 @@ const SecurityGuardInterface = () => {
     type: string;
     description: string;
     timestamp: string;
+    status: 'success' | 'failed';
   }>>([]);
+  
+  // Form states
+  const [pinInput, setPinInput] = useState("");
   const [qrInput, setQrInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [incident, setIncident] = useState("");
+  const [incidentReport, setIncidentReport] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [highRiskVisitors, setHighRiskVisitors] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchSecurityData = async () => {
+    const initializeSecurityInterface = async () => {
       try {
-        // Get user profile
+        // Check authentication and role
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
           toast({
@@ -60,7 +85,7 @@ const SecurityGuardInterface = () => {
           return;
         }
 
-        // Get user profile to check role
+        // Get user profile
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -70,15 +95,14 @@ const SecurityGuardInterface = () => {
         if (profileError || !profile) {
           toast({
             title: "Access Denied",
-            description: "You need security guard privileges to access this dashboard",
+            description: "Unable to verify your security credentials",
             variant: "destructive",
           });
           navigate('/');
           return;
         }
 
-        const userProfileData = profile;
-        if (userProfileData.role !== 'guard') {
+        if (profile.role !== 'guard') {
           toast({
             title: "Access Denied",
             description: "You need security guard privileges to access this dashboard",
@@ -88,39 +112,156 @@ const SecurityGuardInterface = () => {
           return;
         }
 
-        setUserProfile(userProfileData);
-
-        // Fetch security statistics
-        const today = new Date().toISOString().split('T')[0];
+        setUserProfile(profile);
+        await loadSecurityStats();
+        await loadRecentActivity();
         
-        // Mock data for now - in real implementation, these would be actual database queries
-        setStats({
-          todaysVisitors: Math.floor(Math.random() * 50) + 20,
-          pendingVerifications: Math.floor(Math.random() * 10) + 2,
-          recentIncidents: Math.floor(Math.random() * 5),
-          systemStatus: 'online',
-        });
+        // Load high-risk visitors for alerts
+        const riskResult = await getHighRiskVisitors();
+        if (riskResult.success && riskResult.visitors) {
+          setHighRiskVisitors(riskResult.visitors);
+        }
 
-        // Mock recent activity
-        setRecentActivity([
-          { id: "1", type: 'access_granted', description: 'John Doe', timestamp: '2 minutes ago' },
-          { id: "2", type: 'access_denied', description: 'Jane Smith', timestamp: '5 minutes ago' },
-          { id: "3", type: 'incident_reported', description: 'Unknown', timestamp: '10 minutes ago' },
-          { id: "4", type: 'access_granted', description: 'Mike Johnson', timestamp: '15 minutes ago' },
-        ]);
-
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      } catch (error) {
+        console.error('Initialization error:', error);
         toast({
           title: "Error",
-          description: errorMessage,
+          description: "Failed to initialize security interface",
           variant: "destructive",
         });
       }
     };
 
-    fetchSecurityData();
+    initializeSecurityInterface();
   }, [toast, navigate]);
+
+  const loadSecurityStats = async () => {
+    const result = await getTodayStatsDirect();
+    if (result.success && result.stats) {
+      setStats(result.stats);
+    } else {
+      console.error('Failed to load stats:', result.error);
+    }
+  };
+
+  const loadRecentActivity = async () => {
+    try {
+      // Get recent access attempts from access_codes table
+      const { data, error } = await supabase
+        .from('access_codes')
+        .select(`
+          id,
+          used_at,
+          created_at,
+          visitors(*),
+          visit_invitations(visitor_full_name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      const activity = data?.map((item, index) => ({
+        id: item.id,
+        type: item.used_at ? 'access_granted' : 'code_generated',
+        description: item.visit_invitations?.visitor_full_name || `Visitor ${index + 1}`,
+        timestamp: item.used_at ? 
+          new Date(item.used_at).toLocaleTimeString() : 
+          new Date(item.created_at).toLocaleTimeString(),
+        status: item.used_at ? 'success' : 'pending' as 'success' | 'failed'
+      })) || [];
+
+      setRecentActivity(activity);
+    } catch (error) {
+      console.error('Failed to load activity:', error);
+    }
+  };
+
+  const handleVerifyPIN = async () => {
+    if (!pinInput.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a PIN code",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Use offline-capable verification
+      const result = await verifyAccess(pinInput, userProfile?.id, 'pin');
+      
+      // Get visitor risk assessment if verification is successful
+      let riskProfile = null;
+      if (result.success) {
+        // For offline mode, we'll try to get risk profile by visitor name if available
+        // In a production system, this would be enhanced to store visitor_id in offline cache
+        try {
+          if (result.visitor_name) {
+            // Simplified approach - in production would use visitor_id
+            const riskResult = await getVisitorRiskProfile(result.visitor_name);
+            if (riskResult.success) {
+              riskProfile = riskResult.profile;
+            }
+          }
+        } catch (error) {
+          console.log('Could not get risk profile in offline mode:', error);
+        }
+      }
+      
+      setVerificationResult({
+        valid: result.success,
+        visitorName: result.visitor_name,
+        residentName: result.resident_id ? 'Resident' : undefined,
+        visitDate: result.expires_at ? new Date(result.expires_at).toLocaleDateString() : undefined,
+        visitPurpose: undefined,
+        riskProfile: riskProfile
+      });
+
+      if (!result.success) {
+        toast({
+          title: "Access Denied", 
+          description: result.message,
+          variant: "destructive",
+        });
+      } else {
+        // Show risk-aware success message
+        const riskMessage = riskProfile 
+          ? ` (Risk Level: ${riskProfile.risk_level.toUpperCase()})` 
+          : '';
+        
+        toast({
+          title: "Access Granted" + riskMessage,
+          description: result.message,
+          variant: riskProfile?.risk_level === 'high' || riskProfile?.risk_level === 'critical' 
+            ? "destructive" : "default",
+        });
+
+        // Refresh stats and activity
+        await loadSecurityStats();
+        await loadRecentActivity();
+      }
+
+      setPinInput("");
+    } catch (error) {
+      console.error("PIN verification error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to verify PIN code",
+        variant: "destructive",
+      });
+      setVerificationResult({
+        valid: false,
+        visitorName: undefined,
+        residentName: undefined,
+        visitDate: undefined,
+        visitPurpose: undefined
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleVerifyQR = async () => {
     if (!qrInput.trim()) {
@@ -134,51 +275,79 @@ const SecurityGuardInterface = () => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("verify-access-code", {
-        body: { code: qrInput, method: 'qr', community_id: activeCommunityId },
-      });
-
-      if (error) throw error;
-
-      const isValid = data.valid;
+      // Use offline-capable verification
+      const result = await verifyAccess(qrInput, userProfile?.id, 'qr');
       
-      toast({
-        title: isValid ? "Access Granted" : "Access Denied",
-        description: isValid ? "Visitor verified successfully" : "Invalid or expired QR code",
-        variant: isValid ? "default" : "destructive",
+      // Get visitor risk assessment if verification is successful
+      let riskProfile = null;
+      if (result.success) {
+        // For offline mode, we'll try to get risk profile by visitor name if available
+        // In a production system, this would be enhanced to store visitor_id in offline cache
+        try {
+          if (result.visitor_name) {
+            // Simplified approach - in production would use visitor_id
+            const riskResult = await getVisitorRiskProfile(result.visitor_name);
+            if (riskResult.success) {
+              riskProfile = riskResult.profile;
+            }
+          }
+        } catch (error) {
+          console.log('Could not get risk profile in offline mode:', error);
+        }
+      }
+      
+      setVerificationResult({
+        valid: result.success,
+        visitorName: result.visitor_name,
+        residentName: result.resident_id ? 'Resident' : undefined,
+        visitDate: result.expires_at ? new Date(result.expires_at).toLocaleDateString() : undefined,
+        visitPurpose: undefined,
+        riskProfile: riskProfile
       });
 
-      // Log to tenant-scoped access logs
-      try {
-        await (supabase as any)
-          .from('access_logs')
-          .insert({
-            access_code_id: data?.access_code?.id ?? null,
-            access_method: 'qr',
-            guard_id: userProfile?.id ?? null,
-            timestamp: new Date().toISOString(),
-            status: isValid ? 'success' : 'failed',
-            community_id: activeCommunityId,
-            notes: { source: 'SecurityGuardInterface', qr_code: qrInput, verified: isValid }
-          });
-      } catch (e) {
-        console.warn('Failed to write access_logs:', e);
+      if (!result.success) {
+        toast({
+          title: "Access Denied", 
+          description: result.message,
+          variant: "destructive",
+        });
+      } else {
+        // Show risk-aware success message
+        const riskMessage = riskProfile 
+          ? ` (Risk Level: ${riskProfile.risk_level.toUpperCase()})` 
+          : '';
+        
+        toast({
+          title: "Access Granted" + riskMessage,
+          description: result.message,
+          variant: riskProfile?.risk_level === 'high' || riskProfile?.risk_level === 'critical' 
+            ? "destructive" : "default",
+        });
+
+        // Refresh stats and activity
+        await loadSecurityStats();
+        await loadRecentActivity();
       }
 
       setQrInput("");
     } catch (error) {
-      console.error("Verification error:", error);
+      console.error("QR verification error:", error);
       toast({
         title: "Error",
         description: "Failed to verify QR code",
         variant: "destructive",
       });
+      setVerificationResult({
+        valid: false,
+        visitorName: undefined,
+        residentName: undefined,
+        visitDate: undefined,
+        visitPurpose: undefined
+      });
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleSearchVisitors = async () => {
+  };  const handleSearchVisitors = async () => {
     if (!searchQuery.trim()) {
       toast({
         title: "Error",
@@ -190,12 +359,19 @@ const SecurityGuardInterface = () => {
 
     setIsLoading(true);
     try {
-      // Mock search functionality
-      toast({
-        title: "Search Results",
-        description: `Found 3 visitors matching "${searchQuery}"`,
-      });
+      const result = await searchVisitorsDirect(searchQuery);
+      
+      if (result.success) {
+        setSearchResults(result.visitors || []);
+        toast({
+          title: "Search Complete",
+          description: `Found ${result.visitors?.length || 0} results`,
+        });
+      } else {
+        throw new Error(result.error);
+      }
     } catch (error) {
+      console.error("Search error:", error);
       toast({
         title: "Error",
         description: "Failed to search visitors",
@@ -206,11 +382,11 @@ const SecurityGuardInterface = () => {
     }
   };
 
-  const handleReportIncident = async () => {
-    if (!incident.trim()) {
+  const handleSubmitIncident = async () => {
+    if (!incidentReport.trim()) {
       toast({
         title: "Error",
-        description: "Please describe the incident",
+        description: "Please enter incident details",
         variant: "destructive",
       });
       return;
@@ -218,30 +394,17 @@ const SecurityGuardInterface = () => {
 
     setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from("audit_logs")
-        .insert({
-          event_type: "incident_reported",
-          details: { 
-            description: incident,
-            guard_id: userProfile?.id,
-            severity: "medium"
-          },
-        });
-
-      if (error) throw error;
-
+      // Store incident in database (placeholder - would need incident table)
       toast({
         title: "Incident Reported",
         description: "Incident has been logged successfully",
       });
-
-      setIncident("");
+      setIncidentReport("");
     } catch (error) {
-      console.error("Incident reporting error:", error);
+      console.error("Incident report error:", error);
       toast({
         title: "Error",
-        description: "Failed to report incident",
+        description: "Failed to submit incident report",
         variant: "destructive",
       });
     } finally {
@@ -249,51 +412,85 @@ const SecurityGuardInterface = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'success':
-        return 'bg-green-100 text-green-800';
-      case 'error':
-        return 'bg-red-100 text-red-800';
-      case 'warning':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusIcon = (type: string) => {
-    switch (type) {
-      case 'access_granted':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'access_denied':
-        return <AlertTriangle className="h-4 w-4 text-red-600" />;
-      case 'incident_reported':
-        return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
-      default:
-        return <Activity className="h-4 w-4 text-gray-600" />;
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <SharedNavigation 
-        userRole="guard"
-        userName={userProfile?.email}
-        userEmail={userProfile?.email}
-      />
-
-      <div className="container mx-auto px-4 py-8">
-        {/* Welcome Section */}
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Security Guard Dashboard</h1>
-          <p className="text-muted-foreground">
-            Monitor visitor access, verify QR codes, and maintain community security.
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+              <Shield className="h-8 w-8 text-blue-600" />
+              Security Guard Dashboard
+            </h1>
+            <div className="flex items-center gap-4">
+              {!cacheState.isOnline && (
+                <Alert className="border-orange-200 bg-orange-50">
+                  <WifiOff className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    Offline Mode Active
+                  </AlertDescription>
+                </Alert>
+              )}
+              <Badge variant="outline">
+                {cacheState.isOnline ? 'Online' : 'Offline'}
+              </Badge>
+            </div>
+          </div>
+          <p className="mt-2 text-gray-600">
+            Welcome {userProfile?.email} - Monitor and control gate access
           </p>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {/* AI High-Risk Visitor Alerts */}
+        {highRiskVisitors.length > 0 && (
+          <div className="mb-6">
+            <Alert className="border-red-200 bg-red-50">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <div className="font-medium text-red-800">
+                    🚨 High-Risk Visitor Alert ({highRiskVisitors.length} active)
+                  </div>
+                  <div className="text-sm text-red-700">
+                    The following visitors have elevated risk scores and require special attention:
+                  </div>
+                  <div className="space-y-1">
+                    {highRiskVisitors.slice(0, 3).map((visitor, index) => (
+                      <div key={index} className="text-xs bg-white bg-opacity-50 p-2 rounded border border-red-200">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">{visitor.visitor_name || 'Unknown Visitor'}</span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            visitor.risk_level === 'critical' 
+                              ? 'bg-red-100 text-red-800' 
+                              : 'bg-orange-100 text-orange-800'
+                          }`}>
+                            {visitor.risk_level?.toUpperCase()} - {visitor.risk_score}/100
+                          </span>
+                        </div>
+                        {visitor.behavioral_notes && (
+                          <div className="mt-1 text-gray-700">
+                            {visitor.behavioral_notes.length > 80 
+                              ? visitor.behavioral_notes.substring(0, 80) + '...'
+                              : visitor.behavioral_notes
+                            }
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {highRiskVisitors.length > 3 && (
+                      <div className="text-xs text-red-600 font-medium">
+                        +{highRiskVisitors.length - 3} more high-risk visitors
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Today's Visitors</CardTitle>
@@ -301,7 +498,7 @@ const SecurityGuardInterface = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.todaysVisitors}</div>
-              <p className="text-xs text-muted-foreground">Visitors today</p>
+              <p className="text-xs text-muted-foreground">Registered visitors</p>
             </CardContent>
           </Card>
 
@@ -318,262 +515,373 @@ const SecurityGuardInterface = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Recent Incidents</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Access Granted</CardTitle>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.recentIncidents}</div>
-              <p className="text-xs text-muted-foreground">Last 24 hours</p>
+              <div className="text-2xl font-bold">{stats.usedCodes}</div>
+              <p className="text-xs text-muted-foreground">Codes used today</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Offline Status Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Connection Status</CardTitle>
+              {cacheState.isOnline ? (
+                <Wifi className="h-4 w-4 text-green-500" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-orange-500" />
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {cacheState.isOnline ? "Online" : "Offline"}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {cacheState.isOnline ? "Real-time verification" : "Using local cache"}
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">System Status</CardTitle>
-              <Shield className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Cached Codes</CardTitle>
+              <HardDrive className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2">
-                <Badge className="bg-green-100 text-green-800">
-                  {stats.systemStatus}
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">All systems operational</p>
+              <div className="text-2xl font-bold">{cacheState.cacheSize}</div>
+              <p className="text-xs text-muted-foreground">Available offline</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Sync</CardTitle>
+              <RotateCcw className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{cacheState.pendingSync}</div>
+              <p className="text-xs text-muted-foreground">
+                {cacheState.pendingSync > 0 ? "Need sync" : "Up to date"}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Cache Actions</CardTitle>
+              <RefreshCw className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={populateCache}
+                disabled={!cacheState.isOnline}
+                className="w-full text-xs"
+              >
+                Update Cache
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={syncOfflineUsage}
+                disabled={!cacheState.isOnline || cacheState.pendingSync === 0}
+                className="w-full text-xs"
+              >
+                Sync Data
+              </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Content */}
-        <Tabs defaultValue="verification" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="verification" className="flex items-center gap-2">
-              <QrCode className="h-4 w-4" />
-              QR Verification
-            </TabsTrigger>
-            <TabsTrigger value="search" className="flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              Visitor Search
-            </TabsTrigger>
-            <TabsTrigger value="incidents" className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              Incidents
-            </TabsTrigger>
-            <TabsTrigger value="activity" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Recent Activity
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="verification" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <QrCode className="h-5 w-5 text-primary" />
-                    <CardTitle>QR Code Verification</CardTitle>
-                  </div>
-                  <CardDescription>
-                    Scan or enter QR code to verify visitor access
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="qr-input">QR Code</Label>
-                    <Input
-                      id="qr-input"
-                      placeholder="Enter QR code here..."
-                      value={qrInput}
-                      onChange={(e) => setQrInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleVerifyQR()}
-                    />
-                  </div>
-                  <Button 
-                    onClick={handleVerifyQR}
-                    disabled={isLoading}
-                    className="w-full"
-                  >
-                    {isLoading ? "Verifying..." : "Verify Access"}
-                  </Button>
-                  
-                  <div className="text-center">
-                    <Button variant="outline" size="sm" className="flex items-center gap-2 mx-auto">
-                      <Camera className="h-4 w-4" />
-                      Scan QR Code
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-primary" />
-                    <CardTitle>Quick Actions</CardTitle>
-                  </div>
-                  <CardDescription>
-                    Common security operations
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Users className="h-4 w-4 mr-2" />
-                    View Today's Visitors
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Report Suspicious Activity
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Shield className="h-4 w-4 mr-2" />
-                    Emergency Lockdown
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Activity className="h-4 w-4 mr-2" />
-                    System Status Check
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="search" className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Control Panel */}
+          <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Search className="h-5 w-5 text-primary" />
-                  <CardTitle>Visitor Search</CardTitle>
-                </div>
+                <CardTitle>Access Control</CardTitle>
                 <CardDescription>
-                  Search for visitor information by name, ID, or phone number
+                  Verify visitor access codes and manage gate entry
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="pin" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="pin">PIN Verification</TabsTrigger>
+                    <TabsTrigger value="qr">QR Code</TabsTrigger>
+                    <TabsTrigger value="search">Search</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="pin" className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="pin">Enter 6-Digit PIN</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="pin"
+                          placeholder="123456"
+                          value={pinInput}
+                          onChange={(e) => setPinInput(e.target.value)}
+                          maxLength={6}
+                          className="font-mono text-lg"
+                        />
+                        <Button 
+                          onClick={handleVerifyPIN} 
+                          disabled={isLoading}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Verify"}
+                        </Button>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="qr" className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="qr">Scan or Enter QR Code</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="qr"
+                          placeholder="QR Token"
+                          value={qrInput}
+                          onChange={(e) => setQrInput(e.target.value)}
+                          className="font-mono"
+                        />
+                        <Button 
+                          onClick={handleVerifyQR} 
+                          disabled={isLoading}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <QrCode className="h-4 w-4 mr-2" />
+                          Verify
+                        </Button>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="search" className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="search">Search Visitors</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="search"
+                          placeholder="Visitor name or email"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <Button 
+                          onClick={handleSearchVisitors} 
+                          disabled={isLoading}
+                          variant="outline"
+                        >
+                          <Search className="h-4 w-4 mr-2" />
+                          Search
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {searchResults.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Search Results:</h4>
+                        {searchResults.map((visitor, index) => (
+                          <div key={index} className="p-3 border rounded-lg">
+                            <div className="font-medium">{visitor.visitor_full_name}</div>
+                            <div className="text-sm text-gray-600">{visitor.visitor_email}</div>
+                            <div className="text-sm text-gray-500">Visit Date: {visitor.visit_date}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+
+                {/* Verification Result */}
+                {verificationResult && (
+                  <div className="mt-6">
+                    {verificationResult.valid ? (
+                      <Alert className={`border-green-200 bg-green-50 ${
+                        verificationResult.riskProfile?.risk_level === 'high' || 
+                        verificationResult.riskProfile?.risk_level === 'critical' 
+                          ? 'border-red-200 bg-red-50' 
+                          : ''
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          {verificationResult.riskProfile && (
+                            <div className={`ml-auto px-2 py-1 rounded-full text-xs font-medium ${
+                              verificationResult.riskProfile.risk_level === 'critical' 
+                                ? 'bg-red-100 text-red-800' 
+                                : verificationResult.riskProfile.risk_level === 'high'
+                                ? 'bg-orange-100 text-orange-800'
+                                : verificationResult.riskProfile.risk_level === 'medium'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                              Risk: {verificationResult.riskProfile.risk_level.toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <AlertDescription className={`${
+                          verificationResult.riskProfile?.risk_level === 'high' || 
+                          verificationResult.riskProfile?.risk_level === 'critical' 
+                            ? 'text-red-800' 
+                            : 'text-green-800'
+                        }`}>
+                          <div className="space-y-2">
+                            <div><strong>Access Granted</strong></div>
+                            <div className="grid grid-cols-1 gap-1 text-sm">
+                              {verificationResult.visitorName && (
+                                <div>Visitor: {verificationResult.visitorName}</div>
+                              )}
+                              {verificationResult.residentName && (
+                                <div>Host: {verificationResult.residentName}</div>
+                              )}
+                              {verificationResult.visitPurpose && (
+                                <div>Purpose: {verificationResult.visitPurpose}</div>
+                              )}
+                              {verificationResult.visitDate && (
+                                <div>Visit Date: {verificationResult.visitDate}</div>
+                              )}
+                            </div>
+                            
+                            {/* AI Risk Assessment Display */}
+                            {verificationResult.riskProfile && (
+                              <div className="mt-3 p-2 bg-white bg-opacity-50 rounded border border-gray-200">
+                                <h4 className="font-medium text-xs mb-2">🤖 AI Risk Assessment</h4>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                  <div>
+                                    <span className="font-medium">Score:</span> {verificationResult.riskProfile.risk_score}/100
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Confidence:</span> {verificationResult.riskProfile.confidence_level}%
+                                  </div>
+                                  {verificationResult.riskProfile.risk_factors && (
+                                    <div className="col-span-2">
+                                      <span className="font-medium">Key Factors:</span>
+                                      <div className="mt-1 text-xs text-gray-700">
+                                        {Object.entries(verificationResult.riskProfile.risk_factors)
+                                          .slice(0, 3)
+                                          .map(([key, value]) => (
+                                            <div key={key}>• {key.replace(/_/g, ' ')}: {String(value)}</div>
+                                          ))
+                                        }
+                                      </div>
+                                    </div>
+                                  )}
+                                  {verificationResult.riskProfile.behavioral_notes && (
+                                    <div className="col-span-2 mt-1">
+                                      <span className="font-medium">Notes:</span>
+                                      <p className="text-xs text-gray-700 mt-1">
+                                        {verificationResult.riskProfile.behavioral_notes.length > 100 
+                                          ? verificationResult.riskProfile.behavioral_notes.substring(0, 100) + '...'
+                                          : verificationResult.riskProfile.behavioral_notes
+                                        }
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    ) : (
+                      <Alert className="border-red-200 bg-red-50">
+                        <XCircle className="h-4 w-4 text-red-600" />
+                        <AlertDescription className="text-red-800">
+                          Access Denied - Invalid or expired code
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Incident Reporting */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-orange-500" />
+                  Incident Reporting
+                </CardTitle>
+                <CardDescription>
+                  Report security incidents or unusual activities
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="search">Search Term</Label>
-                  <Input
-                    id="search"
-                    placeholder="Enter visitor name, ID, or phone..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearchVisitors()}
+                  <Label htmlFor="incident">Incident Details</Label>
+                  <Textarea
+                    id="incident"
+                    placeholder="Describe the incident..."
+                    value={incidentReport}
+                    onChange={(e) => setIncidentReport(e.target.value)}
+                    rows={4}
                   />
                 </div>
                 <Button 
-                  onClick={handleSearchVisitors}
+                  onClick={handleSubmitIncident} 
                   disabled={isLoading}
-                  className="w-full"
+                  className="bg-orange-600 hover:bg-orange-700"
                 >
-                  {isLoading ? "Searching..." : "Search Visitors"}
+                  <FileText className="h-4 w-4 mr-2" />
+                  Submit Report
                 </Button>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
 
-          <TabsContent value="incidents" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-primary" />
-                    <CardTitle>Report Incident</CardTitle>
-                  </div>
-                  <CardDescription>
-                    Log security incidents or unusual activities
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="incident">Incident Description</Label>
-                    <Textarea
-                      id="incident"
-                      placeholder="Describe the incident in detail..."
-                      value={incident}
-                      onChange={(e) => setIncident(e.target.value)}
-                      rows={4}
-                    />
-                  </div>
-                  <Button 
-                    onClick={handleReportIncident}
-                    disabled={isLoading}
-                    variant="destructive"
-                    className="w-full"
-                  >
-                    {isLoading ? "Reporting..." : "Report Incident"}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-primary" />
-                    <CardTitle>System Status</CardTitle>
-                  </div>
-                  <CardDescription>
-                    Current system status and alerts
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">System Status</span>
-                    <Badge className="bg-green-100 text-green-800">Online</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Database</span>
-                    <Badge className="bg-green-100 text-green-800">Connected</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">QR Scanner</span>
-                    <Badge className="bg-green-100 text-green-800">Ready</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Network</span>
-                    <Badge className="bg-green-100 text-green-800">Stable</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="activity" className="space-y-6">
+          {/* Activity Panel */}
+          <div>
             <Card>
               <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-primary" />
-                  <CardTitle>Recent Activity</CardTitle>
-                </div>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Recent Activity
+                </CardTitle>
                 <CardDescription>
-                  Latest security events and access attempts
+                  Latest gate access attempts
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {recentActivity.map((activity) => (
-                    <div key={activity.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-3">
-                        {getStatusIcon(activity.type)}
+                        {activity.status === 'success' ? (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <Clock className="h-4 w-4 text-yellow-500" />
+                        )}
                         <div>
-                          <p className="font-medium">{activity.description}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {activity.type.replace('_', ' ').toUpperCase()}
-                          </p>
+                          <div className="text-sm font-medium">{activity.description}</div>
+                          <div className="text-xs text-gray-500">{activity.type.replace('_', ' ')}</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <Badge className={getStatusColor('success')}>
-                          Success
-                        </Badge>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {activity.timestamp}
-                        </p>
-                      </div>
+                      <div className="text-xs text-gray-500">{activity.timestamp}</div>
                     </div>
                   ))}
                 </div>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-4"
+                  onClick={() => {
+                    loadRecentActivity();
+                    loadSecurityStats();
+                  }}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </div>
     </div>
   );

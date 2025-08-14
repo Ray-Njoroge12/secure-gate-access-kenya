@@ -24,9 +24,9 @@ const isIntegration = process.env.INTEGRATION_TESTS === '1';
 
 if (process.env.DEBUG_TESTS) {
   const mask = (v?: string) => v ? v.substring(0, 6) + '…' : 'missing';
-  // eslint-disable-next-line no-console
+   
   console.log('[vitest.setup] ENV loaded: URL=', mask(process.env.VITE_SUPABASE_URL), ' ANON=', mask(process.env.VITE_SUPABASE_ANON_KEY), ' SRV=', mask(process.env.SUPABASE_SERVICE_ROLE_KEY));
-  // eslint-disable-next-line no-console
+   
   console.log('[vitest.setup] Mode:', isIntegration ? 'INTEGRATION' : isUnitTest ? 'UNIT/MOCK' : 'DEFAULT');
 }
 

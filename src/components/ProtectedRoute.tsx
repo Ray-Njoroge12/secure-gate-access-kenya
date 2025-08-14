@@ -6,7 +6,7 @@ import { useTenant } from "@/context/TenantProvider";
 
 interface ProtectedRouteProps {
   children: JSX.Element;
-  requiredRole?: string;
+  requiredRole?: string | string[];
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
@@ -71,8 +71,11 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredRole && userRole !== requiredRole) {
-    return <Navigate to="/unauthorized" replace />;
+  if (requiredRole) {
+    const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    if (!userRole || !allowedRoles.includes(userRole)) {
+      return <Navigate to="/unauthorized" replace />;
+    }
   }
 
   return children;
