@@ -47,7 +47,10 @@
     "compliance:report": "vitest run tests/security/compliance.test.ts --reporter=json --outputFile=compliance-report.json",
     "verify:tenants": "node scripts/verify-tenant-isolation.js",
     "lighthouse": "lhci autorun",
-    "analyze:bundle": "npx vite-bundle-analyzer"
+    "analyze:bundle": "npx vite-bundle-analyzer",
+    "deploy:fix": "node scripts/fix-deployment.mjs",
+    "ui:enhance": "node scripts/enhance-ui.mjs",
+    "fix:all": "npm run deploy:fix && npm run test:unit && npm run build:production"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
