@@ -1,16 +1,17 @@
 {
   "name": "Secure Gate Access Kenya",
-  "short_name": "Gate Access",
-  "description": "Secure visitor management system for residential communities in Kenya",
+  "short_name": "SecureGate",
+  "description": "Advanced visitor management and access control system for residential communities in Kenya",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#0F172A",
+  "theme_color": "#2563EB",
   "background_color": "#FFFFFF",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "scope": "/",
-  "categories": ["security", "utilities", "productivity"],
+  "categories": ["security", "business", "productivity", "utilities"],
   "lang": "en-US",
   "dir": "ltr",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/favicon.ico",
@@ -59,7 +60,6 @@
     }
   ],
   "related_applications": [],
-  "prefer_related_applications": false,
   "protocol_handlers": [
     {
       "protocol": "web+gateaccess",
