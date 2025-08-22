@@ -1,7 +1,10 @@
-// Service Worker for Secure Gate Access Kenya
-const CACHE_NAME = 'secure-gate-v1.0.0';
-const STATIC_CACHE_NAME = 'static-v1.0.0';
-const DYNAMIC_CACHE_NAME = 'dynamic-v1.0.0';
+// Service Worker for Secure Gate Access Kenya PWA
+// Enhanced with offline functionality, background sync, and push notifications
+const CACHE_NAME = 'secure-gate-v1.1.0';
+const CACHE_VERSION = 2;
+const STATIC_CACHE_NAME = `${CACHE_NAME}-static-v${CACHE_VERSION}`;
+const DYNAMIC_CACHE_NAME = `${CACHE_NAME}-dynamic-v${CACHE_VERSION}`;
+const API_CACHE_NAME = `${CACHE_NAME}-api-v${CACHE_VERSION}`;
 
 // Assets to cache immediately
 const STATIC_ASSETS = [
