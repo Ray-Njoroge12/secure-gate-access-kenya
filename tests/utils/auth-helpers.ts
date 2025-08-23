@@ -10,7 +10,7 @@ export interface TestUser {
   fullName: string;
   unitNumber: string;
   phone: string;
-  role: 'resident' | 'security_guard' | 'visitor';
+  role: 'resident' | 'security_guard' | 'admin' | 'visitor';
 }
 
 export interface AuthTestContext {
