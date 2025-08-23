@@ -1,0 +1,192 @@
+/* Component-specific CSS optimizations */
+
+/* Chart components - lazy loaded */
+.chart-container {
+  contain: layout style paint;
+  min-height: 300px;
+  position: relative;
+}
+
+.chart-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.5rem;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Analytics dashboard optimizations */
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  contain: layout;
+}
+
+.analytics-card {
+  contain: layout style;
+  transform: translateZ(0); /* Force GPU acceleration */
+}
+
+/* Data table optimizations */
+.data-table {
+  contain: layout;
+  overflow: auto;
+  max-height: 600px;
+}
+
+.data-table tbody tr {
+  contain: layout;
+}
+
+/* Virtual scrolling container */
+.virtual-scroll {
+  contain: strict;
+  overflow: auto;
+  height: 400px;
+}
+
+.virtual-item {
+  contain: layout style;
+  min-height: 60px;
+}
+
+/* Modal and overlay optimizations */
+.modal-overlay {
+  contain: layout style paint;
+  backdrop-filter: blur(4px);
+  will-change: opacity;
+}
+
+.modal-content {
+  contain: layout style;
+  transform: translateZ(0);
+}
+
+/* Form optimizations */
+.form-group {
+  contain: layout;
+  margin-bottom: 1rem;
+}
+
+.form-input {
+  contain: layout;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  .analytics-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .chart-container {
+    min-height: 250px;
+  }
+  
+  .data-table {
+    max-height: 400px;
+  }
+}
+
+/* Print optimizations */
+@media print {
+  .chart-container {
+    contain: none;
+    break-inside: avoid;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .chart-loading {
+    animation: none;
+    background: #f0f0f0;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .card {
+    border-width: 2px;
+  }
+  
+  .btn-primary {
+    border: 2px solid currentColor;
+  }
+}
+
+/* Dark mode optimizations */
+@media (prefers-color-scheme: dark) {
+  .chart-loading {
+    background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+    background-size: 200% 100%;
+  }
+}
+
+/* GPU acceleration for smooth animations */
+.animate-smooth {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Optimize font rendering */
+.text-optimized {
+  text-rendering: optimizeSpeed;
+  font-kerning: none;
+  font-feature-settings: "kern" 0, "liga" 0;
+}
+
+/* Critical layout shifts prevention */
+.prevent-layout-shift {
+  contain: layout;
+  min-height: 1px;
+}
+
+/* Lazy image loading */
+.img-lazy {
+  contain: layout;
+}
+
+/* QR Code component optimizations */
+.qr-code-container {
+  contain: layout style;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-code-loading {
+  width: 200px;
+  height: 200px;
+  background: #f0f0f0;
+  border-radius: 0.5rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
