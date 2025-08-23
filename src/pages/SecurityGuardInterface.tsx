@@ -14,6 +14,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { verifyAccessCodeDirect, markAccessCodeUsed, getTodayStatsDirect, searchVisitorsDirect } from "@/lib/security-guard-helpers";
 import { useOfflineAccessCache } from "@/hooks/useOfflineAccessCache";
 import { useAIRiskAssessment } from "@/hooks/useAIRiskAssessment";
+import { useEnhancedOfflineSecurity } from "@/hooks/useEnhancedOfflineSecurity";
+import { RealTimeMonitoringDashboard } from "@/components/RealTimeMonitoringDashboard";
+import { SecurityAuditCompliance } from "@/components/SecurityAuditCompliance";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -45,6 +48,15 @@ const SecurityGuardInterface = () => {
   const navigate = useNavigate();
   const { state: cacheState, populateCache, verifyAccess, syncOfflineUsage, getCacheStatus } = useOfflineAccessCache();
   const { calculateVisitorRisk, getVisitorRiskProfile, detectAnomalies, getHighRiskVisitors } = useAIRiskAssessment();
+  const { 
+    state: offlineSecurityState, 
+    saveIncidentOffline, 
+    saveAccessLogOffline, 
+    syncPendingItems, 
+    retryFailedItems,
+    clearOfflineData,
+    calculateStorageUsage 
+  } = useEnhancedOfflineSecurity();
   
   const [stats, setStats] = useState<SecurityStats>({
     todaysVisitors: 0,
@@ -596,6 +608,19 @@ const SecurityGuardInterface = () => {
               </Button>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Real-Time Monitoring Dashboard */}
+        <div className="mb-8">
+          <RealTimeMonitoringDashboard 
+            currentLocation="Main Gate"
+            onAlertAcknowledge={async (alertId: string) => {
+              toast({
+                title: "Alert Acknowledged",
+                description: `Alert ${alertId} has been acknowledged.`,
+              });
+            }}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
