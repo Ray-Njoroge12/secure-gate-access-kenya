@@ -16,6 +16,7 @@
     "type-check": "tsc --noEmit",
     "preview": "vite preview",
     "test": "vitest run",
+    "verify:env": "node scripts/verify-test-environment.mjs",
     "test:unit": "vitest run src/**/*.test.{ts,tsx}",
     "test:integration": "vitest run tests/integration/**/*.test.ts",
     "test:e2e": "playwright test",
