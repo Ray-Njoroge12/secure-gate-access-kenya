@@ -1,6 +1,51 @@
 import '@testing-library/jest-dom/vitest';
 import fs from 'fs';
 import path from 'path';
+import { vi } from 'vitest';
+
+// In-memory minimal Supabase-like stub to eliminate real network calls.
+type Row = Record<string, any>;
+interface TableStore { [table: string]: Row[] }
+const store: TableStore = {};
+
+function buildQuery(table: string) {
+  let rows = store[table] || (store[table] = []);
+  const filters: ((r: Row) => boolean)[] = [];
+  const apply = () => rows.filter(r => filters.every(f => f(r)));
+  const builder: any = {
+    select(_cols?: string) { return builder; },
+    insert(values: Row | Row[]) { const arr = Array.isArray(values) ? values : [values]; rows.push(...arr); return { data: arr, error: null }; },
+    update(values: Row) { apply().forEach(r => Object.assign(r, values)); return { data: apply(), error: null }; },
+    delete() { const current = apply(); store[table] = rows = rows.filter(r => !current.includes(r)); return { data: current, error: null }; },
+    eq(field: string, value: any) { filters.push(r => r[field] === value); return builder; },
+    order(_field: string, _opts?: any) { return builder; },
+    limit(_n: number) { return builder; },
+    single: async () => ({ data: apply()[0] || null, error: null }),
+    then: (resolve: any, reject: any) => { try { resolve({ data: apply(), error: null }); } catch (e) { reject(e); } }
+  };
+  return builder;
+}
+
+const session = { user: { id: 'stub-user', role: 'resident', email: 'stub@example.com' } };
+
+function makeClient() {
+  return {
+    from: (table: string) => buildQuery(table),
+    auth: {
+      signUp: async () => ({ data: { user: session.user, session }, error: null }),
+      signInWithPassword: async () => ({ data: { user: session.user, session }, error: null }),
+      getSession: async () => ({ data: { session }, error: null }),
+      signOut: async () => ({ error: null })
+    },
+    functions: { invoke: async () => ({ data: { ok: true }, error: null }) },
+    rpc: async () => ({ data: null, error: null })
+  };
+}
+
+// Global mock for any import of @supabase/supabase-js
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: (_url: string, _key: string) => makeClient()
+}));
 
 // Minimal env file loader (avoids adding dotenv dependency while npm is unstable)
 function loadEnvFile(file: string) {
@@ -30,6 +75,4 @@ if (process.env.DEBUG_TESTS) {
   console.log('[vitest.setup] Mode:', isIntegration ? 'INTEGRATION' : isUnitTest ? 'UNIT/MOCK' : 'DEFAULT');
 }
 
-// For now, disable all mocking to resolve integration test issues
-// Unit test mocking can be added later in separate unit test files
-console.log('[vitest.setup] Mocking disabled - using real Supabase clients for all tests');
+console.log('[vitest.setup] Using in-memory Supabase stub (no network calls)');
