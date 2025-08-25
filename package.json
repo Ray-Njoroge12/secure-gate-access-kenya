@@ -87,7 +87,8 @@
     "validate:production-complete": "node scripts/production-readiness-check.js",
     "deploy:fix": "node scripts/fix-deployment.mjs",
     "ui:enhance": "node scripts/enhance-ui.mjs",
-    "fix:all": "npm run deploy:fix && npm run test:unit && npm run build:production"
+  "fix:all": "npm run deploy:fix && npm run test:unit && npm run build:production",
+  "dev:api": "cross-env RUN_SERVER=true tsx server/index.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -145,7 +146,12 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.2",
-    "zod": "^3.23.8"
+  "zod": "^3.23.8",
+  "express": "^4.19.2",
+  "cors": "^2.8.5",
+  "jsonwebtoken": "^9.0.2",
+  "bcryptjs": "^2.4.3",
+  "@prisma/client": "^5.20.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
@@ -176,7 +182,8 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^7.1.3",
-    "vitest": "^3.2.4"
+  "vitest": "^3.2.4",
+  "prisma": "^5.20.0"
   },
   "overrides": {},
   "pnpm": {

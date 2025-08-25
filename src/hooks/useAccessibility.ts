@@ -38,7 +38,7 @@ export const useFocusManagement = () => {
     }
   };
 
-  const trapFocus = (containerRef: React.RefObject<HTMLElement>) => {
+  const useTrapFocus = (containerRef: React.RefObject<HTMLElement>) => {
     useEffect(() => {
       const container = containerRef.current;
       if (!container) return;
@@ -46,33 +46,27 @@ export const useFocusManagement = () => {
       const focusableElements = container.querySelectorAll(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
-      
+      if (!focusableElements.length) return;
       const firstElement = focusableElements[0] as HTMLElement;
       const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
 
       const handleTabKey = (e: KeyboardEvent) => {
-        if (e.key === 'Tab') {
-          if (e.shiftKey) {
-            if (document.activeElement === firstElement) {
-              lastElement.focus();
-              e.preventDefault();
-            }
-          } else {
-            if (document.activeElement === lastElement) {
-              firstElement.focus();
-              e.preventDefault();
-            }
+        if (e.key !== 'Tab') return;
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
           }
+        } else if (document.activeElement === lastElement) {
+          firstElement.focus();
+          e.preventDefault();
         }
       };
 
       container.addEventListener('keydown', handleTabKey);
-      
-      return () => {
-        container.removeEventListener('keydown', handleTabKey);
-      };
+      return () => container.removeEventListener('keydown', handleTabKey);
     }, [containerRef]);
   };
 
-  return { saveFocus, restoreFocus, trapFocus };
+  return { saveFocus, restoreFocus, useTrapFocus };
 };

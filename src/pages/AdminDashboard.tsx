@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Users, Shield, BarChart3, Settings, Key, Trash2, Database as DatabaseIcon, Download, Upload, Bell, CheckCircle, XCircle, Clock, Activity, Server, Network, Brain, FileBarChart, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { useToast } from "@/hooks/use-toast";
 import { SharedNavigation } from "@/components/SharedNavigation";
 import type { Database } from "@/integrations/supabase/types";
@@ -55,18 +56,18 @@ const AdminDashboard = () => {
   });
   const { toast } = useToast();
 
+  const { session, loading: authLoading } = useAuthSession();
+
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        // Get user profile
-        const { data: { session } } = await supabase.auth.getSession();
+        if (authLoading) return;
         if (session?.user) {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single();
-          
           if (!profileError && profile) {
             setUserProfile(profile);
           }

@@ -9,13 +9,14 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     include: [
       'src/**/*.{test,spec}.{js,ts,jsx,tsx}',
-      'supabase/functions/**/*.test.ts',
       'tests/**/*.test.ts',
       'tests/**/system-integrity-tests.ts'
     ],
     exclude: [
       'node_modules/',
       'dist/',
+  // Fully exclude archived Supabase sources & edge function tests
+  'supabase/**',
       '**/*.e2e.{test,spec}.{js,ts,jsx,tsx}'
     ],
     testTimeout: 30000,
@@ -45,7 +46,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@supabase_shared/': '/supabase/functions/_shared/',
+  // Removed Supabase edge function sources; alias retained only if legacy imports linger.
       '@/': '/src/',
       '@': '/src',
       '@/components': '/src/components',

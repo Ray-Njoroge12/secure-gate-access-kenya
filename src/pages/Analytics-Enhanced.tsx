@@ -34,9 +34,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import type { Database } from "@/integrations/supabase/types";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
-type Profile = Database['public']['Tables']['profiles']['Row'];
+interface Profile { id?: string; user_id?: string; email?: string; role?: string; }
 
 interface AnalyticsData {
   totalInvitations: number;
@@ -106,64 +106,34 @@ const Analytics = () => {
   // Color scheme for charts
   const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
 
+  const { session, loading: authLoading } = useAuthSession();
+
   useEffect(() => {
-    const initializeAnalytics = async () => {
+    const init = async () => {
       try {
-        // Check authentication and role
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
-          toast({
-            title: "Access Denied",
-            description: "You need to be logged in to access analytics",
-            variant: "destructive",
-          });
+        if (authLoading) return;
+        if (!session?.user) { navigate('/'); return; }
+        const { data: profiles } = await supabase.from('profiles').select();
+        const profile = (profiles || []).find((p: any) => p.id === session.user.id || p.user_id === session.user.id) || null;
+        if (!profile) {
+          toast({ title: 'Access Denied', description: 'Unable to verify your credentials', variant: 'destructive' });
           navigate('/');
           return;
         }
-
-        // Get user profile
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profileError || !profile) {
-          toast({
-            title: "Access Denied",
-            description: "Unable to verify your credentials",
-            variant: "destructive",
-          });
+        if (profile.role && !['admin', 'guard'].includes(profile.role)) {
+          toast({ title: 'Access Denied', description: 'You need admin or security privileges to access analytics', variant: 'destructive' });
           navigate('/');
           return;
         }
-
-        // Check if user has admin or guard role
-        if (!['admin', 'guard'].includes(profile.role)) {
-          toast({
-            title: "Access Denied",
-            description: "You need admin or security privileges to access analytics",
-            variant: "destructive",
-          });
-          navigate('/');
-          return;
-        }
-
         setUserProfile(profile);
         await fetchAnalytics();
-
-      } catch (error) {
-        console.error('Initialization error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to initialize analytics dashboard",
-          variant: "destructive",
-        });
+      } catch (e) {
+        console.error('Initialization error:', e);
+        toast({ title: 'Error', description: 'Failed to initialize analytics dashboard', variant: 'destructive' });
       }
     };
-
-    initializeAnalytics();
-  }, [toast, navigate]);
+    init();
+  }, [authLoading, session, toast, navigate]);
 
   const fetchAnalytics = useCallback(async () => {
     try {
