@@ -1,13 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
+// Local stub import (the application now runs without real Supabase)
+// We re-export the single stub instance for tests to use unified helpers.
+import supabase from '../../src/integrations/supabase/client';
 
-// Test configuration
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'http://localhost:54321';
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || '';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-// Shared test clients
-export const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-export const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+// For backward compatibility in tests that expect both client + admin.
+export const supabaseClient = supabase as any;
+export const supabaseAdmin = supabase as any;
 
 // Debug logging helper
 export function debugLog(message: string, data?: any) {
@@ -19,51 +16,13 @@ export function debugLog(message: string, data?: any) {
 
 // Test client validation
 export function validateTestClients(): void {
-  debugLog('Validating test clients...');
-  
-  // Check basic client structure
-  if (!supabaseAdmin || typeof supabaseAdmin !== 'object') {
-    throw new Error('supabaseAdmin is not properly initialized');
-  }
-  
-  if (!supabaseClient || typeof supabaseClient !== 'object') {
-    throw new Error('supabaseClient is not properly initialized');
-  }
-  
-  // Check if clients have expected methods/properties
-  if (typeof (supabaseAdmin as any).from !== 'function') {
-    throw new Error('supabaseAdmin missing method: from');
-  }
-  
-  if (typeof (supabaseClient as any).from !== 'function') {
-    throw new Error('supabaseClient missing method: from');
-  }
-  
-  // Functions is an object with invoke method, not a function itself
-  if (!((supabaseAdmin as any).functions && typeof (supabaseAdmin as any).functions.invoke === 'function')) {
-    throw new Error('supabaseAdmin.functions.invoke missing');
-  }
-  
-  if (!((supabaseClient as any).functions && typeof (supabaseClient as any).functions.invoke === 'function')) {
-    throw new Error('supabaseClient.functions.invoke missing');
-  }
-  
-  // Auth exists on client
-  if (!((supabaseClient as any).auth && typeof (supabaseClient as any).auth.signInWithPassword === 'function')) {
-    throw new Error('supabaseClient.auth.signInWithPassword missing');
-  }
-  
-  // Validate query builder methods on a sample table call
-  const builder = supabaseAdmin.from('communities');
-  const builderMethods = ['select', 'insert', 'update', 'delete'];
-  
-  for (const method of builderMethods) {
-    if (typeof (builder as any)[method] !== 'function') {
-      throw new Error(`Query builder missing method: ${method} (possible mock leakage)`);
-    }
-  }
-  
-  debugLog('✅ Test clients validation passed (basic structure confirmed)');
+  debugLog('Validating stub test clients...');
+  // Minimal surface checks only
+  if (!supabaseClient || typeof supabaseClient !== 'object') throw new Error('stub client missing');
+  if (typeof (supabaseClient as any).from !== 'function') throw new Error('stub from missing');
+  if (!(supabaseClient as any).functions?.invoke) throw new Error('stub functions.invoke missing');
+  if (!(supabaseClient as any).auth?.signInWithPassword) throw new Error('stub auth.signInWithPassword missing');
+  debugLog('✅ Stub client validation passed');
 }
 
 // Simple assertion helper
@@ -104,16 +63,6 @@ export async function cleanupTestData(entityIds: { [table: string]: string[] }):
 
 // Environment validation
 export function validateTestEnvironment(): void {
-  const required = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
-  const missing = required.filter(key => !process.env[key]);
-  
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
-  }
-  
-  if (!SUPABASE_URL.startsWith('http')) {
-    throw new Error(`Invalid SUPABASE_URL format: ${SUPABASE_URL}`);
-  }
-  
-  debugLog('✅ Test environment validation passed');
+  // No required Supabase env vars anymore; keep a simple log for visibility.
+  debugLog('Environment validation skipped (Supabase removed).');
 }

@@ -85,15 +85,11 @@ class SystemTestRunner {
       console.warn('⚠️  Warning: No .env file found. Make sure environment variables are set.');
     }
     
-    // Check if Supabase is configured
-    const supabaseConfigExists = fs.existsSync('supabase/config.toml');
-    if (!supabaseConfigExists) {
-      console.warn('⚠️  Warning: Supabase config not found. Tests may fail without proper configuration.');
-    }
-    
+  // Supabase config check removed (backend removed / stubbed)
     // Check required dependencies
     const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-    const requiredDeps = ['@supabase/supabase-js', 'vitest', '@faker-js/faker'];
+    // Supabase removed: only ensure vitest & faker present in stub mode
+    const requiredDeps = ['vitest', '@faker-js/faker'];
     
     for (const dep of requiredDeps) {
       if (!packageJson.dependencies?.[dep] && !packageJson.devDependencies?.[dep]) {

@@ -71,3 +71,20 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Supabase Removal (Local Stub Mode)
+
+The project previously depended on Supabase for authentication, database, RPC functions, and edge functions. Supabase has been fully removed:
+
+- `@supabase/supabase-js` and CLI dependency removed from `package.json`.
+- All Supabase DB scripts in `package.json` replaced with no-op echo commands.
+- A lightweight in-memory stub now lives at `src/integrations/supabase/client.ts` exposing minimal `auth`, `from(...)`, `functions.invoke`, and `rpc` APIs used by existing components.
+- Environment tests updated to stop requiring Supabase-specific vars.
+
+This allows the React UI to continue working with ephemeral in-memory data while a new backend (Express/other) is introduced. Replace stub calls by introducing an abstraction layer (e.g. `src/services/api`) and migrating components progressively.
+
+Next backend migration steps (suggested):
+1. Define REST endpoints contract (OpenAPI or TypeScript types) for auth, invitations, access codes, logs.
+2. Implement backend service (e.g. Express + SQLite/Postgres) matching that contract.
+3. Swap component data hooks to call the new API instead of the stub.
+4. Remove stub file once all usages are migrated.
