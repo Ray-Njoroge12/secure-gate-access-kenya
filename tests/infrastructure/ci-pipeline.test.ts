@@ -44,7 +44,8 @@ describe('CI/CD Pipeline Testing', () => {
       
       // Check that we have required dependencies
       expect(packageJson.dependencies.react).toBeDefined()
-      expect(packageJson.dependencies['@supabase/supabase-js']).toBeDefined()
+  // Supabase removed: ensure dependency is absent to confirm stub mode
+  expect(packageJson.dependencies?.['@supabase/supabase-js']).toBeUndefined()
       expect(packageJson.devDependencies.vite).toBeDefined()
       expect(packageJson.devDependencies.vitest).toBeDefined()
     })

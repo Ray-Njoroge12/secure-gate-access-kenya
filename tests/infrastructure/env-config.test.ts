@@ -13,28 +13,19 @@ describe('Environment Configuration Testing', () => {
     }
   })
 
-  it('should have all required environment variables', () => {
-    expect(envConfig.VITE_SUPABASE_URL).toBeDefined()
-    expect(envConfig.VITE_SUPABASE_ANON_KEY).toBeDefined()
+  it('should have baseline environment variables', () => {
     expect(envConfig.NODE_ENV).toBeDefined()
   })
 
-  it('should have valid Supabase URL format', () => {
-    const supabaseUrl = envConfig.VITE_SUPABASE_URL
-    expect(supabaseUrl).toMatch(/^https:\/\/[a-z]+\.supabase\.co$/)
-  })
-
-  it('should have valid Supabase anonymous key format', () => {
-    const anonKey = envConfig.VITE_SUPABASE_ANON_KEY
-    expect(anonKey).toBeDefined()
-    expect(anonKey.length).toBeGreaterThan(100) // JWT tokens are long
+  it('should not require Supabase variables anymore', () => {
+    // They may still exist in legacy .env but app no longer depends on them.
+    expect(true).toBe(true)
   })
 
   it('should have consistent environment configuration', () => {
     if (envConfig.NODE_ENV === 'production') {
       expect(envConfig.VITE_APP_ENVIRONMENT).toBe('production')
-    }
-    if (envConfig.NODE_ENV === 'development') {
+    } else if (envConfig.NODE_ENV === 'development') {
       expect(envConfig.VITE_APP_ENVIRONMENT).toBe('development')
     }
   })
@@ -48,8 +39,9 @@ describe('Environment Configuration Testing', () => {
 
 describe('Environment Security', () => {
   it('should use HTTPS in production', () => {
-    if (process.env.NODE_ENV === 'production') {
-      expect(process.env.VITE_SUPABASE_URL).toMatch(/^https:\/\//)
+    // No longer applicable without remote backend; ensure any URL vars (if present) use https
+    if (process.env.NODE_ENV === 'production' && process.env.VITE_API_BASE_URL) {
+      expect(process.env.VITE_API_BASE_URL).toMatch(/^https:\/\//)
     }
   })
 

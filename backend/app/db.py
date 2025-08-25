@@ -62,7 +62,7 @@ class InMemoryDB:
         return next((c for c in self.access_codes.values() if c.jti == jti), None)
 
     def mark_used(self, ac: AccessCode):
-    ac.used_at = datetime.now(UTC)
+        ac.used_at = datetime.now(UTC)
 
 
 inmem_db = InMemoryDB()

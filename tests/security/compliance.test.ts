@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { createClient } from '@supabase/supabase-js'
 
-describe('Security Compliance Tests', () => {
+// Disabled: Relied on Supabase backend & edge functions (removed).
+describe.skip('Security Compliance Tests (DISABLED - Supabase removed)', () => {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || 'http://localhost:54321'
   const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || 'test-anon-key'
   const supabase = createClient(supabaseUrl, supabaseAnonKey)
@@ -217,48 +218,7 @@ describe('Security Compliance Tests', () => {
     })
   })
 
-  describe('Data Breach Prevention', () => {
-    it('should detect unusual access patterns', async () => {
-      // Test anomaly detection
-      const accessPattern = {
-        user_id: 'test-user',
-        access_count: 100,
-        time_window: 60, // seconds
-        resources_accessed: 50
-      }
-
-      // High access count should trigger alerts
-      const isAnomalous = accessPattern.access_count > 50 && 
-                         accessPattern.time_window < 300
-      
-      expect(isAnomalous).toBe(true)
-    })
-
-    it('should implement rate limiting', async () => {
-      // Test rate limiting
-      const requests = []
-      
-      // Simulate rapid requests
-      for (let i = 0; i < 10; i++) {
-        requests.push(
-          supabase.from('visitors').select('count').limit(1)
-        )
-      }
-
-      const results = await Promise.all(requests)
-      
-      // Some requests should be rate limited
-      const hasRateLimitError = results.some(result => 
-        result.error?.message?.includes('rate limit') ||
-        result.error?.message?.includes('too many requests')
-      )
-
-      // In a production environment, this should be true
-      if (process.env.NODE_ENV === 'production') {
-        expect(hasRateLimitError).toBe(true)
-      }
-    })
-  })
+  // Data Breach Prevention group removed (backend disabled)
 
   describe('Compliance Frameworks', () => {
     it('should meet ISO 27001 requirements', async () => {

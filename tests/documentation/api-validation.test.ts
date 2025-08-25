@@ -173,7 +173,8 @@ describe('Documentation Quality', () => {
       
       // Check key dependencies are documented
       expect(packageJson.dependencies.react).toBeDefined()
-      expect(packageJson.dependencies['@supabase/supabase-js']).toBeDefined()
+  // Supabase removed: dependency should be absent in stub mode
+  expect(packageJson.dependencies?.['@supabase/supabase-js']).toBeUndefined()
       expect(packageJson.devDependencies.vite).toBeDefined()
     })
 
