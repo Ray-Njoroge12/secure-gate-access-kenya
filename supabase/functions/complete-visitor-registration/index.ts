@@ -62,22 +62,8 @@ Deno.serve(async (req: Request) => {
     console.error('Visitor registration error:', error);
     return new Response(JSON.stringify({ 
       error: 'Internal server error',
-      message: error.message,
-      stack: error.stack
-    }), {
-      status: 500,
-      headers: { 
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
-    });
-
-  } catch (error) {
-    console.error('Visitor registration error:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error',
-      message: error.message,
-      stack: error.stack
+      message: (error as Error).message,
+      stack: (error as Error).stack
     }), {
       status: 500,
       headers: { 

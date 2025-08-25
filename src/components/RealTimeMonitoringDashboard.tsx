@@ -21,6 +21,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { useToast } from "@/hooks/use-toast";
 
 interface RealTimeAlert {
@@ -67,6 +68,7 @@ export function RealTimeMonitoringDashboard({
   className = "" 
 }: RealTimeMonitoringProps) {
   const { toast } = useToast();
+  const { session } = useAuthSession();
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [alerts, setAlerts] = useState<RealTimeAlert[]>([]);
   const [systemHealth, setSystemHealth] = useState<SystemHealth>({
@@ -262,13 +264,11 @@ export function RealTimeMonitoringDashboard({
         .limit(1);
 
       // Test authentication
-      const { data: session } = await supabase.auth.getSession();
-
       const responseTime = Date.now() - startTime;
       
       setSystemHealth({
         database: dbError ? 'degraded' : 'healthy',
-        authentication: session ? 'healthy' : 'degraded',
+  authentication: session ? 'healthy' : 'degraded',
         notifications: 'healthy', // Placeholder - would test actual notification service
         camera_systems: 'healthy', // Placeholder - would test camera connections
         last_check: new Date().toISOString(),

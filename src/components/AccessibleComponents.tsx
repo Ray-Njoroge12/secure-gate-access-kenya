@@ -89,7 +89,7 @@ export const AccessibleModal: React.FC<AccessibleModalProps> = ({
   size = 'md'
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
-  const { saveFocus, restoreFocus, trapFocus } = useFocusManagement();
+  const { saveFocus, restoreFocus, useTrapFocus } = useFocusManagement();
 
   useEffect(() => {
     if (isOpen) {
@@ -105,7 +105,7 @@ export const AccessibleModal: React.FC<AccessibleModalProps> = ({
     }
   }, [isOpen, saveFocus, restoreFocus]);
 
-  trapFocus(modalRef);
+  useTrapFocus(modalRef);
 
   if (!isOpen) return null;
 

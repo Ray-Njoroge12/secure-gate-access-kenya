@@ -10,13 +10,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Users, QrCode, Clock, Shield, Activity, CheckCircle, XCircle, Search, FileText, Camera, Copy, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { SharedNavigation } from "@/components/SharedNavigation";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { verifyAccessCodeDirect, markAccessCodeUsed, getTodayStatsDirect, searchVisitorsDirect, AccessVerificationResult } from "@/lib/security-guard-helpers";
-import type { Database } from "@/integrations/supabase/types";
-
-type Profile = Database['public']['Tables']['profiles']['Row'];
+interface Profile { id?: string; user_id?: string; email?: string; role?: string; }
 
 interface SecurityStats {
   todaysVisitors: number;
@@ -38,6 +37,7 @@ interface IncidentReport {
 
 const SecurityGuardInterface = () => {
   const { toast } = useToast();
+  const { session, loading: authLoading } = useAuthSession();
   const navigate = useNavigate();
   const [stats, setStats] = useState<SecurityStats>({
     todaysVisitors: 0,
@@ -68,8 +68,7 @@ const SecurityGuardInterface = () => {
 
   const fetchSecurityData = async () => {
     try {
-      // Get user profile
-      const { data: { session } } = await supabase.auth.getSession();
+      if (authLoading) return;
       if (!session?.user) {
         toast({
           title: "Access Denied",
@@ -84,7 +83,7 @@ const SecurityGuardInterface = () => {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', session.user.id)
+  .eq('id', session.user.id)
         .single();
 
       if (profileError || !profile) {
@@ -155,10 +154,9 @@ const SecurityGuardInterface = () => {
 
   useEffect(() => {
     fetchSecurityData();
-    // Refresh data every 30 seconds for real-time updates
     const interval = setInterval(fetchSecurityData, 30000);
     return () => clearInterval(interval);
-  }, [toast, navigate]);
+  }, [toast, navigate, authLoading, session]);
 
   const handleVerifyAccess = async (code: string, method: 'pin' | 'qr') => {
     if (!code.trim()) {
@@ -344,7 +342,7 @@ const SecurityGuardInterface = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <SharedNavigation />
+      <SharedNavigation userRole={userProfile?.role || 'guard'} userName={userProfile?.email} userEmail={userProfile?.email} />
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex justify-between items-center">
           <div>

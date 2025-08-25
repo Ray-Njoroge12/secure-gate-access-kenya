@@ -10,6 +10,7 @@ import { AlertTriangle, Users, QrCode, Clock, Shield, Activity, CheckCircle, XCi
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { verifyAccessCodeDirect, markAccessCodeUsed, getTodayStatsDirect, searchVisitorsDirect } from "@/lib/security-guard-helpers";
 import { useOfflineAccessCache } from "@/hooks/useOfflineAccessCache";
@@ -17,9 +18,8 @@ import { useAIRiskAssessment } from "@/hooks/useAIRiskAssessment";
 import { useEnhancedOfflineSecurity } from "@/hooks/useEnhancedOfflineSecurity";
 import { RealTimeMonitoringDashboard } from "@/components/RealTimeMonitoringDashboard";
 import { SecurityAuditCompliance } from "@/components/SecurityAuditCompliance";
-import type { Database } from "@/integrations/supabase/types";
-
-type Profile = Database['public']['Tables']['profiles']['Row'];
+// Local lightweight profile definition
+interface Profile { id?: string; user_id?: string; email?: string; role?: string; }
 
 interface SecurityStats {
   todaysVisitors: number;
@@ -79,73 +79,39 @@ const SecurityGuardInterface = () => {
   const [incidentReport, setIncidentReport] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const { session, loading: authLoading } = useAuthSession();
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [highRiskVisitors, setHighRiskVisitors] = useState<any[]>([]);
 
   useEffect(() => {
-    const initializeSecurityInterface = async () => {
+    const init = async () => {
       try {
-        // Check authentication and role
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
-          toast({
-            title: "Access Denied",
-            description: "You need to be logged in to access this dashboard",
-            variant: "destructive",
-          });
+        if (authLoading) return;
+        if (!session?.user) { navigate('/'); return; }
+        const { data: profiles } = await supabase.from('profiles').select();
+        const profile = (profiles || []).find((p: any) => p.id === session.user.id || p.user_id === session.user.id) || null;
+        if (!profile) {
+          toast({ title: 'Access Denied', description: 'Unable to verify your security credentials', variant: 'destructive' });
           navigate('/');
           return;
         }
-
-        // Get user profile
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profileError || !profile) {
-          toast({
-            title: "Access Denied",
-            description: "Unable to verify your security credentials",
-            variant: "destructive",
-          });
+        if (profile.role && profile.role !== 'guard') {
+          toast({ title: 'Access Denied', description: 'You need security guard privileges to access this dashboard', variant: 'destructive' });
           navigate('/');
           return;
         }
-
-        if (profile.role !== 'guard') {
-          toast({
-            title: "Access Denied",
-            description: "You need security guard privileges to access this dashboard",
-            variant: "destructive",
-          });
-          navigate('/');
-          return;
-        }
-
         setUserProfile(profile);
         await loadSecurityStats();
         await loadRecentActivity();
-        
-        // Load high-risk visitors for alerts
         const riskResult = await getHighRiskVisitors();
-        if (riskResult.success && riskResult.visitors) {
-          setHighRiskVisitors(riskResult.visitors);
-        }
-
-      } catch (error) {
-        console.error('Initialization error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to initialize security interface",
-          variant: "destructive",
-        });
+        if (riskResult.success && riskResult.visitors) setHighRiskVisitors(riskResult.visitors);
+      } catch (e) {
+        console.error('Initialization error:', e);
+        toast({ title: 'Error', description: 'Failed to initialize security interface', variant: 'destructive' });
       }
     };
-
-    initializeSecurityInterface();
-  }, [toast, navigate]);
+    init();
+  }, [authLoading, session, toast, navigate]);
 
   const loadSecurityStats = async () => {
     const result = await getTodayStatsDirect();

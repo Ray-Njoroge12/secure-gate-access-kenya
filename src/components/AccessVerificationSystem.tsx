@@ -20,6 +20,7 @@ import { QRCodeScanner } from "./QRCodeScanner";
 import { PINEntry } from "./PINEntry";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/apiClient";
 import { useTenant } from "@/context/TenantProvider";
 
 interface AccessVerificationSystemProps {
@@ -98,7 +99,14 @@ export function AccessVerificationSystem({
         body: { code: accessCode, method, community_id: activeCommunityId },
       });
 
-      let accessData = data?.access_code;
+      // Use new API route first (Express backend); keep old path as fallback during migration
+      let apiResult: any | null = null;
+      try {
+        apiResult = await api.verifyAccessCode(accessCode);
+      } catch (e) {
+        // swallow for fallback
+      }
+      let accessData = apiResult && apiResult.ok ? { expires_at: new Date(Date.now()+10*60*1000).toISOString(), visitors: {}, visit_invitations: {} } : data?.access_code;
       // Fallback to direct table query if edge function not available
       if (error || !accessData) {
         const { data: direct, error: directErr } = await (supabase as any)

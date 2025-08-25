@@ -26,9 +26,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import type { Database } from "@/integrations/supabase/types";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
-type Profile = Database['public']['Tables']['profiles']['Row'];
+// Local lightweight profile interface
+interface Profile { id?: string; user_id?: string; email?: string; role?: string; }
 
 interface Notification {
   id: string;
@@ -97,69 +98,39 @@ const NotificationCenter = () => {
     location: ''
   });
   const [showNewIncidentForm, setShowNewIncidentForm] = useState(false);
+  const { session, loading: authLoading } = useAuthSession();
 
   useEffect(() => {
-    const initializeNotificationCenter = async () => {
+    const init = async () => {
       try {
-        // Check authentication and role
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
-          toast({
-            title: "Access Denied",
-            description: "You need to be logged in to access notifications",
-            variant: "destructive",
-          });
+        if (authLoading) return;
+        if (!session?.user) { navigate('/'); return; }
+
+        const { data: profiles } = await supabase.from('profiles').select();
+        const profile = (profiles || []).find((p: any) => p.id === session.user.id || p.user_id === session.user.id) || null;
+        if (!profile) {
+          toast({ title: 'Access Denied', description: 'Unable to verify your credentials', variant: 'destructive' });
           navigate('/');
           return;
         }
-
-        // Get user profile
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profileError || !profile) {
-          toast({
-            title: "Access Denied",
-            description: "Unable to verify your credentials",
-            variant: "destructive",
-          });
+        if (profile.role && !['admin', 'guard', 'resident'].includes(profile.role)) {
+          toast({ title: 'Access Denied', description: "You don't have permission to access notifications", variant: 'destructive' });
           navigate('/');
           return;
         }
-
-        // Check if user has appropriate role
-        if (!['admin', 'guard', 'resident'].includes(profile.role)) {
-          toast({
-            title: "Access Denied",
-            description: "You don't have permission to access notifications",
-            variant: "destructive",
-          });
-          navigate('/');
-          return;
-        }
-
         setUserProfile(profile);
         await loadNotifications();
         await loadIncidents();
         setupRealTimeSubscriptions();
-
-      } catch (error) {
-        console.error('Initialization error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to initialize notification center",
-          variant: "destructive",
-        });
+      } catch (e) {
+        console.error('Initialization error:', e);
+        toast({ title: 'Error', description: 'Failed to initialize notification center', variant: 'destructive' });
       } finally {
         setLoading(false);
       }
     };
-
-    initializeNotificationCenter();
-  }, [toast, navigate]);
+    init();
+  }, [authLoading, session, toast, navigate]);
 
   const loadNotifications = async () => {
     try {

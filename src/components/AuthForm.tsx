@@ -9,8 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Mail, Lock, User, Home, Phone } from "lucide-react";
 import { TwoFactorVerify } from "@/components/auth/TwoFactorVerify";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 export function AuthForm() {
+  const { getAccessToken } = useAuthSession();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [show2FAChallenge, setShow2FAChallenge] = useState(false);
@@ -52,7 +54,7 @@ export function AuthForm() {
 
       if (has2FA) {
         // Store token temporarily and show 2FA challenge
-        setTempUserToken(data.session.access_token);
+  setTempUserToken(data.session.access_token);
         setShow2FAChallenge(true);
         setLoading(false);
         return;

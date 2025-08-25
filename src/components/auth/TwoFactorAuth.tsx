@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { useAuthSession } from "@/hooks/useAuthSession";
+// QR code generation will be handled via the 'qrcode' library to avoid missing dependency types
+import QRCode from "qrcode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,12 +18,14 @@ interface TwoFactorAuthProps {
 
 export const TwoFactorAuth = ({ onClose }: TwoFactorAuthProps) => {
   const { toast } = useToast();
+  const { session, getAccessToken } = useAuthSession();
   const [isEnabled, setIsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [setupStep, setSetupStep] = useState<'check' | 'setup' | 'verify'>('check');
   
   // Setup state
   const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [secret, setSecret] = useState('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [copiedSecret, setCopiedSecret] = useState(false);
@@ -36,8 +40,7 @@ export const TwoFactorAuth = ({ onClose }: TwoFactorAuthProps) => {
 
   const checkTwoFactorStatus = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session?.user) return;
 
       const { data, error } = await supabase
         .from('user_2fa_settings')
@@ -59,19 +62,27 @@ export const TwoFactorAuth = ({ onClose }: TwoFactorAuthProps) => {
   const handleSetupTwoFactor = async () => {
     setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+  if (!session?.user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase.functions.invoke('manage-2fa', {
         body: {
           action: 'setup',
-          token: session.access_token,
+          token: getAccessToken(),
         },
       });
 
       if (error) throw error;
 
       setQrCodeUrl(data.qrCodeUrl);
+      // Generate a data URL for display
+      if (data.qrCodeUrl) {
+        try {
+          const generated = await QRCode.toDataURL(data.qrCodeUrl);
+          setQrCodeDataUrl(generated);
+        } catch (e) {
+          console.warn('Failed generating QR code data URL', e);
+        }
+      }
       setSecret(data.secret);
       setBackupCodes(data.backupCodes);
       setSetupStep('setup');
@@ -98,13 +109,12 @@ export const TwoFactorAuth = ({ onClose }: TwoFactorAuthProps) => {
 
     setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+  if (!session?.user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase.functions.invoke('manage-2fa', {
         body: {
           action: 'enable',
-          token: session.access_token,
+          token: getAccessToken(),
           code: verificationCode,
         },
       });
@@ -142,13 +152,12 @@ export const TwoFactorAuth = ({ onClose }: TwoFactorAuthProps) => {
 
     setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+  if (!session?.user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase.functions.invoke('manage-2fa', {
         body: {
           action: 'disable',
-          token: session.access_token,
+          token: getAccessToken(),
           code: verificationCode,
         },
       });
@@ -304,7 +313,9 @@ export const TwoFactorAuth = ({ onClose }: TwoFactorAuthProps) => {
             
             <TabsContent value="qr" className="space-y-4">
               <div className="flex justify-center p-6 border rounded-lg bg-white">
-                {qrCodeUrl && <QRCodeSVG value={qrCodeUrl} size={200} />}
+                {qrCodeDataUrl && (
+                  <img src={qrCodeDataUrl} alt="2FA QR Code" className="h-[200px] w-[200px]" />
+                )}
               </div>
               <Alert>
                 <Smartphone className="h-4 w-4" />

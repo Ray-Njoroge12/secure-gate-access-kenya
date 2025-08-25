@@ -4,6 +4,7 @@ import { Shield, Users, QrCode, Clock, ExternalLink, BarChart, User, LogOut, Loa
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -13,63 +14,37 @@ const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { session, loading } = useAuthSession();
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    const getUserRole = async () => {
+    const load = async () => {
+      if (loading) return;
+      if (!session) { navigate('/login'); return; }
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          navigate('/login');
-          return;
-        }
-
-        // Get user profile and role
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
-
         if (profileError || !profile) {
-          console.error('Error fetching profile:', profileError);
-          toast({
-            title: "Error",
-            description: "Failed to load user profile",
-            variant: "destructive",
-          });
+          toast({ title: 'Error', description: 'Failed to load user profile', variant: 'destructive' });
           return;
         }
-
-        const userProfileData = profile;
-        setUserProfile(userProfileData);
-        setUserRole(userProfileData.role || null);
-        
-        // Auto-redirect based on role
-        switch (userProfileData.role) {
-          case 'admin':
-            navigate('/admin');
-            break;
-          case 'guard':
-            navigate('/security-guard');
-            break;
-          case 'resident':
-            navigate('/resident-dashboard');
-            break;
-          default:
-            // Show role selection if no role is set
-            setLoading(false);
+        setUserProfile(profile);
+        setUserRole(profile.role || null);
+        switch (profile.role) {
+          case 'admin': navigate('/admin'); break;
+          case 'guard': navigate('/security-guard'); break;
+          case 'resident': navigate('/resident-dashboard'); break;
+          default: /* no role -> stay for selection */ break;
         }
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-        console.error('Error fetching user role:', errorMessage);
+      } catch (err) {
+        console.error('Error fetching user role:', err);
       }
     };
-
-    getUserRole();
-  }, [navigate, toast]);
+    load();
+  }, [session, loading, navigate, toast]);
 
   const handleLogout = async () => {
     try {

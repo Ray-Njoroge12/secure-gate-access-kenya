@@ -1,0 +1,103 @@
+// Prisma schema establishing initial Postgres data model migrated from Supabase usage.
+// Adjust types/indexes as needed during iterative migration.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  profile   Profile?
+  invitations Invitation[] @relation("UserInvitations")
+  twoFASettings TwoFASetting[]
+}
+
+model Profile {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @unique
+  email     String
+  createdAt DateTime @default(now())
+}
+
+model Invitation {
+  id           String   @id @default(cuid())
+  visitorEmail String
+  status       String   @default("PENDING")
+  createdAt    DateTime @default(now())
+  host         User?    @relation("UserInvitations", fields: [hostId], references: [id])
+  hostId       String?
+  visits       InvitationVisit[]
+}
+
+model Visitor {
+  id        String   @id @default(cuid())
+  email     String?
+  createdAt DateTime @default(now())
+  invitations InvitationVisit[]
+}
+
+model InvitationVisit {
+  id           String    @id @default(cuid())
+  invitation   Invitation @relation(fields: [invitationId], references: [id])
+  invitationId String
+  visitor      Visitor    @relation(fields: [visitorId], references: [id])
+  visitorId    String
+  createdAt    DateTime   @default(now())
+}
+
+model AccessCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  used      Boolean  @default(false)
+  pinHash   String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  logs      AccessLog[]
+}
+
+model AccessLog {
+  id          String     @id @default(cuid())
+  accessCode  AccessCode @relation(fields: [accessCodeId], references: [id])
+  accessCodeId String
+  method      String
+  createdAt   DateTime   @default(now())
+}
+
+model SecurityIncident {
+  id        String   @id @default(cuid())
+  type      String
+  details   String?
+  createdAt DateTime @default(now())
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  name      String
+  key       String   @unique
+  createdAt DateTime @default(now())
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  url       String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model TwoFASetting {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @unique
+  enabled   Boolean  @default(false)
+  secret    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

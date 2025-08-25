@@ -23,15 +23,17 @@ import {
   Upload,
   Phone,
   Mail,
-  MessageSquare
+  MessageSquare,
+  X
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import type { Database } from "@/integrations/supabase/types";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
-type Profile = Database['public']['Tables']['profiles']['Row'];
+// Local minimal profile shape decoupled from Supabase types
+interface Profile { id?: string; user_id?: string; email?: string; role?: string; }
 
 interface IncidentDetails {
   id: string;
@@ -119,6 +121,7 @@ const IncidentManagement = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const { session, loading: authLoading } = useAuthSession();
 
   // New incident form state
   const [newIncident, setNewIncident] = useState({
@@ -136,63 +139,35 @@ const IncidentManagement = () => {
   });
 
   useEffect(() => {
-    const initializeIncidentManagement = async () => {
+    const init = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
-          toast({
-            title: "Access Denied",
-            description: "You need to be logged in to access incident management",
-            variant: "destructive",
-          });
+        if (authLoading) return; // wait for auth
+        if (!session?.user) { navigate('/'); return; }
+
+        const { data: profiles } = await supabase.from('profiles').select();
+        const profile = (profiles || []).find((p: any) => p.id === session.user.id || p.user_id === session.user.id) || null;
+        if (!profile) {
+          toast({ title: 'Access Denied', description: 'Unable to verify your credentials', variant: 'destructive' });
           navigate('/');
           return;
         }
-
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profileError || !profile) {
-          toast({
-            title: "Access Denied",
-            description: "Unable to verify your credentials",
-            variant: "destructive",
-          });
+        if (profile.role && !['admin', 'guard'].includes(profile.role)) {
+          toast({ title: 'Access Denied', description: 'You need admin or security privileges to access incident management', variant: 'destructive' });
           navigate('/');
           return;
         }
-
-        if (!['admin', 'guard'].includes(profile.role)) {
-          toast({
-            title: "Access Denied",
-            description: "You need admin or security privileges to access incident management",
-            variant: "destructive",
-          });
-          navigate('/');
-          return;
-        }
-
         setUserProfile(profile);
         await loadIncidents();
         await loadStats();
-
-      } catch (error) {
-        console.error('Initialization error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to initialize incident management",
-          variant: "destructive",
-        });
+      } catch (e) {
+        console.error('Initialization error:', e);
+        toast({ title: 'Error', description: 'Failed to initialize incident management', variant: 'destructive' });
       } finally {
         setLoading(false);
       }
     };
-
-    initializeIncidentManagement();
-  }, [toast, navigate]);
+    init();
+  }, [authLoading, session, toast, navigate]);
 
   const loadIncidents = async () => {
     try {
@@ -346,6 +321,8 @@ const IncidentManagement = () => {
       return;
     }
 
+    // Allow severity comparisons by reading current value (assert as any to satisfy TS after narrowing)
+    const currentSeverity = newIncident.severity as string;
     const incident: IncidentDetails = {
       id: Date.now().toString(),
       ...newIncident,
@@ -361,8 +338,8 @@ const IncidentManagement = () => {
         performedBy: userProfile?.email || 'Unknown',
         notes: 'Initial incident report'
       }],
-      followUpRequired: newIncident.severity === 'high' || newIncident.severity === 'critical',
-      followUpDate: newIncident.severity === 'critical' ? 
+      followUpRequired: currentSeverity === 'high' || currentSeverity === 'critical',
+      followUpDate: currentSeverity === 'critical' ? 
         new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() : // 2 hours for critical
         new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours for others
       notificationsTriggered: [],
