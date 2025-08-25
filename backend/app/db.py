@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Dict, Optional
 import uuid
 
@@ -17,7 +17,7 @@ class AccessCode:
     qr_token: str | None
     expires_at: datetime
     used_at: Optional[datetime] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     jti: Optional[str] = None
 
 
@@ -27,7 +27,7 @@ class Visitor:
     full_name_ct: str
     id_number_ct: str
     phone_ct: str
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 class InMemoryDB:
@@ -52,7 +52,7 @@ class InMemoryDB:
             visitor_id=visitor_id,
             pin_hash=pin_hash,
             qr_token=qr_token,
-            expires_at=datetime.utcnow() + timedelta(hours=ttl),
+            expires_at=datetime.now(UTC) + timedelta(hours=ttl),
             jti=jti
         )
         self.access_codes[ac_id] = ac
@@ -62,7 +62,7 @@ class InMemoryDB:
         return next((c for c in self.access_codes.values() if c.jti == jti), None)
 
     def mark_used(self, ac: AccessCode):
-        ac.used_at = datetime.utcnow()
+    ac.used_at = datetime.now(UTC)
 
 
 inmem_db = InMemoryDB()
