@@ -1,5 +1,0 @@
-ALTER TABLE visit_invitations
-ADD COLUMN is_multi_use BOOLEAN DEFAULT FALSE,
-ADD COLUMN uses_remaining INTEGER DEFAULT 1,
-ADD COLUMN start_date DATE,
-ADD COLUMN end_date DATE;

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 
@@ -7,8 +7,13 @@ export const router = Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+// Extend the Request interface to include userId
+interface AuthenticatedRequest extends Request {
+  userId?: string;
+}
+
 // Middleware to verify JWT token
-const authenticateToken = (req: any, res: any, next: any) => {
+const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
@@ -25,7 +30,7 @@ const authenticateToken = (req: any, res: any, next: any) => {
   }
 };
 
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const profile = await prisma.profile.findUnique({
       where: { userId: req.userId },
@@ -41,6 +46,7 @@ router.get('/', authenticateToken, async (req, res) => {
         id: profile.id,
         email: profile.email,
         userId: profile.userId,
+        role: profile.role,
         createdAt: profile.createdAt
       }
     });
@@ -50,13 +56,28 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-router.put('/', authenticateToken, async (req, res) => {
+router.put('/', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { email } = req.body;
+    const { email, role } = req.body;
+
+    // Check if user is admin to update role
+    const currentUserProfile = await prisma.profile.findUnique({
+      where: { userId: req.userId }
+    });
+
+    if (role && role !== currentUserProfile?.role) {
+      // Only admins can change roles
+      if (currentUserProfile?.role !== 'admin') {
+        return res.status(403).json({ error: 'Only admins can change roles' });
+      }
+    }
 
     const profile = await prisma.profile.update({
       where: { userId: req.userId },
-      data: { email },
+      data: { 
+        email,
+        ...(role && currentUserProfile?.role === 'admin' ? { role } : {})
+      },
       include: { user: true }
     });
 
@@ -65,6 +86,7 @@ router.put('/', authenticateToken, async (req, res) => {
         id: profile.id,
         email: profile.email,
         userId: profile.userId,
+        role: profile.role,
         createdAt: profile.createdAt
       }
     });

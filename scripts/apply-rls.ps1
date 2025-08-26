@@ -1,82 +1,143 @@
 <#
 .SYNOPSIS
-Applies the RLS migration in `supabase/migrations/20250821_update_profiles_rls.sql` to the target database.
+Applies the RLS migrations to the PostgreSQL database.
 
 USAGE
 1) Set the environment variable DATABASE_URL to your Postgres connection string (postgresql://user:pass@host:port/db)
-   In PowerShell: $env:DATABASE_URL = 'postgresql://postgres:password@host:6543/postgres'
+   In PowerShell: $env:DATABASE_URL = 'postgresql://postgres:password@localhost:5432/secure_gate'
 2) Run: .\scripts\apply-rls.ps1
 
-This script will try, in order:
- - npx supabase db push --db-url $DATABASE_URL (recommended)
- - psql $DATABASE_URL -f <sql-file> (fallback if psql is installed)
-If both fail it prints manual instructions to run the SQL in the Supabase dashboard.
+This script will apply all RLS migrations using psql or provide manual instructions.
 #>
 
 Set-StrictMode -Version Latest
 
-$SqlFile = Join-Path $PSScriptRoot '..\supabase\migrations\20250821_update_profiles_rls.sql' | Resolve-Path -ErrorAction SilentlyContinue
-if (-not $SqlFile) {
-    Write-Error "Migration SQL not found at 'supabase/migrations/20250821_update_profiles_rls.sql'."
-    exit 2
-}
+# Define all RLS migration files
+$MigrationFiles = @(
+    '..\supabase\migrations\20250821_update_profiles_rls.sql',
+    '..\supabase\migrations\20250822_update_access_codes_rls.sql',
+    '..\supabase\migrations\20250823_update_security_tables_rls.sql',
+    '..\supabase\migrations\20250824_update_users_rls.sql',
+    '..\supabase\migrations\20250825_update_api_keys_rls.sql',
+    '..\supabase\migrations\20250826_update_visitor_tables_rls.sql',
+    '..\supabase\migrations\20250827_update_remaining_tables_rls.sql'
+)
 
 $dbUrl = $env:DATABASE_URL
 if (-not $dbUrl -or $dbUrl -eq '') {
     Write-Host "ERROR: DATABASE_URL environment variable is not set."
     Write-Host "Set it first, for example (PowerShell):"
-    Write-Host "  $env:DATABASE_URL = 'postgresql://postgres:yourpassword@aws-0-eu-central-1.pooler.supabase.com:6543/postgres'"
-    Write-Host "Or open the Supabase project > Settings > Database > Connection string and copy the connection string into DATABASE_URL."
+    Write-Host "  $env:DATABASE_URL = 'postgresql://postgres:yourpassword@localhost:5432/secure_gate'"
+    Write-Host "Or update your .env file with the correct database connection string."
     exit 1
 }
 
 Write-Host "Using DATABASE_URL: $($dbUrl.Substring(0, [Math]::Min($dbUrl.Length, 40)))..."
 
-function Try-SupabasePush {
-    Write-Host "Trying: npx supabase db push --db-url <DATABASE_URL>"
-    try {
-        $proc = Start-Process -FilePath "npx" -ArgumentList "supabase db push --db-url `"$dbUrl`"" -NoNewWindow -Wait -PassThru -ErrorAction Stop
-        return $proc.ExitCode -eq 0
-    } catch {
-        Write-Warning "npx supabase push failed or supabase CLI not available: $($_.Exception.Message)"
-        return $false
-    }
-}
-
-function Try-PSQL {
-    Write-Host "Trying: psql <DATABASE_URL> -f <sql-file>"
+function Get-PSQLPath {
     try {
         $psql = Get-Command psql -ErrorAction SilentlyContinue
-        if (-not $psql) {
-            Write-Warning "psql not found in PATH. Skipping psql attempt."
+        if ($psql) {
+            return "psql"
+        }
+        # Check common PostgreSQL installation paths
+        $commonPaths = @(
+            "C:\Program Files\PostgreSQL\17\bin\psql.exe",
+            "C:\Program Files\PostgreSQL\16\bin\psql.exe",
+            "C:\Program Files\PostgreSQL\15\bin\psql.exe",
+            "C:\Program Files\PostgreSQL\14\bin\psql.exe"
+        )
+        
+        foreach ($path in $commonPaths) {
+            if (Test-Path $path) {
+                return $path
+            }
+        }
+        return $null
+    } catch {
+        return $null
+    }
+}
+
+function Test-PSQL {
+    return [bool](Get-PSQLPath)
+}
+
+function Apply-Migration {
+    param($SqlFile)
+    
+    Write-Host "Applying migration: $(Split-Path $SqlFile -Leaf)"
+    
+    try {
+        $SqlFile = Join-Path $PSScriptRoot $SqlFile | Resolve-Path -ErrorAction Stop
+        if (-not (Test-Path $SqlFile)) {
+            Write-Warning "Migration file not found: $SqlFile"
             return $false
         }
-        # psql accepts the connection string as the first argument
+
+        $psqlPath = Get-PSQLPath
+        if (-not $psqlPath) {
+            Write-Warning "psql not found"
+            return $false
+        }
+
         $arg = "$dbUrl -f `"$SqlFile`""
-        $proc = Start-Process -FilePath "psql" -ArgumentList $arg -NoNewWindow -Wait -PassThru -ErrorAction Stop
-        return $proc.ExitCode -eq 0
+        $proc = Start-Process -FilePath $psqlPath -ArgumentList $arg -NoNewWindow -Wait -PassThru -ErrorAction Stop
+        
+        if ($proc.ExitCode -eq 0) {
+            Write-Host "Successfully applied: $(Split-Path $SqlFile -Leaf)"
+            return $true
+        } else {
+            Write-Warning "Failed to apply: $(Split-Path $SqlFile -Leaf) (Exit code: $($proc.ExitCode))"
+            return $false
+        }
     } catch {
-        Write-Warning "psql execution failed: $($_.Exception.Message)"
+        Write-Warning "Error applying migration: $($_.Exception.Message)"
         return $false
     }
 }
 
-if (Try-SupabasePush) {
-    Write-Host "✅ supabase CLI applied migrations successfully."
-    Write-Host "Run: npx vitest tests/integration/role_based_access_control.test.ts --run"
-    exit 0
+# Check if psql is available
+if (-not (Test-PSQL)) {
+    Write-Host "psql not found in PATH. Please install PostgreSQL client tools."
+    Write-Host "You can download PostgreSQL from: https://www.postgresql.org/download/"
+    Write-Host "Or use Docker with PostgreSQL client tools."
+    exit 1
 }
 
-if (Try-PSQL) {
-    Write-Host "✅ psql applied SQL successfully."
-    Write-Host "Run: npx vitest tests/integration/role_based_access_control.test.ts --run"
-    exit 0
+Write-Host "Starting RLS migration process..."
+$successCount = 0
+$totalMigrations = $MigrationFiles.Count
+
+foreach ($migrationFile in $MigrationFiles) {
+    if (Apply-Migration $migrationFile) {
+        $successCount++
+    } else {
+        Write-Warning "Failed to apply migration: $migrationFile"
+    }
 }
 
-Write-Host "\n⚠️  Automatic application failed. Please run the SQL manually in the Supabase SQL editor."
-Write-Host "1) Open: https://app.supabase.com/project/<your-project-ref>/sql"
-Write-Host "2) Open the file: supabase/migrations/20250821_update_profiles_rls.sql"
-Write-Host "3) Paste and execute the SQL."
-Write-Host "\nIf you prefer to run locally, set DATABASE_URL and either install the supabase CLI or psql and re-run this script."
-
-exit 1
+if ($successCount -eq $totalMigrations) {
+    Write-Host "All $successCount RLS migrations applied successfully!"
+    Write-Host "Next steps:"
+    Write-Host "1. Run the tests: npx vitest tests/integration/role_based_access_control.test.ts --run"
+    Write-Host "2. Verify all tests pass with RLS enforcement"
+    exit 0
+} elseif ($successCount -gt 0) {
+    Write-Host "$successCount out of $totalMigrations migrations applied successfully."
+    Write-Host "Some migrations may have failed. Check the warnings above."
+    exit 1
+} else {
+    Write-Host "All migrations failed. Please apply them manually:"
+    Write-Host ""
+    Write-Host "Manual Application Instructions:"
+    Write-Host "1. Connect to your PostgreSQL database using psql or a GUI tool"
+    Write-Host "2. Run each SQL file in the supabase/migrations/ directory"
+    Write-Host "3. Files to apply:"
+    foreach ($file in $MigrationFiles) {
+        Write-Host "   - $file"
+    }
+    Write-Host ""
+    Write-Host "After applying manually run: npx vitest tests/integration/role_based_access_control.test.ts --run"
+    exit 1
+}

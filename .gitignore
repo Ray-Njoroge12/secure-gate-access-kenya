@@ -29,3 +29,6 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+ 
+# Large binaries to exclude
+postgresql-installer.exe

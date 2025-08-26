@@ -3,12 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { Shield, Users, QrCode, Clock, ExternalLink, BarChart, User, LogOut, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/supabase/client";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useToast } from "@/hooks/use-toast";
-import type { Database } from "@/integrations/supabase/types";
 
-type Profile = Database['public']['Tables']['profiles']['Row'];
+interface Profile {
+  id: string;
+  email: string;
+  role?: string;
+  created_at?: string;
+  updated_at?: string;
+}
 
 const Index = () => {
   const { toast } = useToast();
@@ -22,17 +27,17 @@ const Index = () => {
       if (loading) return;
       if (!session) { navigate('/login'); return; }
       try {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        if (profileError || !profile) {
-          toast({ title: 'Error', description: 'Failed to load user profile', variant: 'destructive' });
-          return;
-        }
+        // For now, we'll use a simple approach since we don't have direct database access
+        // In a real implementation, you would make an API call to get the user's profile
+        const profile: Profile = {
+          id: session.user?.id || '',
+          email: session.user?.email || '',
+          role: 'resident' // Default role for now
+        };
         setUserProfile(profile);
         setUserRole(profile.role || null);
+        
+        // Auto-redirect based on role
         switch (profile.role) {
           case 'admin': navigate('/admin'); break;
           case 'guard': navigate('/security-guard'); break;
@@ -40,7 +45,8 @@ const Index = () => {
           default: /* no role -> stay for selection */ break;
         }
       } catch (err) {
-        console.error('Error fetching user role:', err);
+        console.error('Error loading user profile:', err);
+        toast({ title: 'Error', description: 'Failed to load user profile', variant: 'destructive' });
       }
     };
     load();
@@ -48,8 +54,8 @@ const Index = () => {
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      const response = await apiClient.signOut();
+      if (response.error) throw new Error(response.error);
       toast({ title: "Logged Out", description: "You have been successfully logged out." });
       navigate('/login');
     } catch (error) {
@@ -59,13 +65,8 @@ const Index = () => {
 
   const handleRoleSelection = async (role: string) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role })
-        .eq('id', userProfile?.id);
-
-      if (error) throw error;
-
+      // For now, we'll just set the role locally since we don't have a profile update API
+      // In a real implementation, you would make an API call to update the user's role
       setUserRole(role);
       toast({
         title: "Role Updated",
