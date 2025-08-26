@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 export const router = Router();
@@ -17,9 +17,20 @@ interface SignupRequest {
   email: string;
   password: string;
   fullName: string;
-  unitNumber: string;
-  phone: string;
+  unitNumber?: string;
+  phone?: string;
 }
+
+// Email validation function
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+// Password validation function
+const isValidPassword = (password: string): boolean => {
+  return password.length >= 6; // Minimum 6 characters
+};
 
 router.post('/login', async (req, res) => {
   try {
@@ -29,22 +40,20 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Find user by email
+    // Find user by email in database including password field
     const user = await prisma.user.findUnique({
       where: { email },
       include: { profile: true }
     });
-
+    
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+    
+    // Use bcrypt to compare the provided password with the hashed password
+    const isPasswordValid = await bcrypt.compare(password, (user as any).password);
 
-    // In a real implementation, you would verify the password hash
-    // For now, we'll use a simple check since passwords aren't hashed in the stub
-    // This should be replaced with proper password hashing
-    const isValidPassword = true; // Placeholder for password verification
-
-    if (!isValidPassword) {
+    if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -86,20 +95,24 @@ router.post('/signup', async (req, res) => {
       return res.status(409).json({ error: 'User already exists' });
     }
 
-    // Create user
+    // Create user and profile in database
     const user = await prisma.user.create({
       data: {
         email,
-        // In a real implementation, you would hash the password
-        // password: await bcrypt.hash(password, 12),
+        password: await bcrypt.hash(password, 10), // Hashing the password
         profile: {
           create: {
             email,
-            // Additional profile fields can be added here
+            fullName,
+            unitNumber,
+            phone,
+            role: 'resident' // Default role for new users
           }
         }
       },
-      include: { profile: true }
+      include: {
+        profile: true
+      }
     });
 
     // Generate JWT token

@@ -13,6 +13,7 @@ datasource db {
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
+  password  String   // Added password field for authentication
   createdAt DateTime @default(now())
   profile   Profile?
   invitations Invitation[] @relation("UserInvitations")
@@ -20,11 +21,15 @@ model User {
 }
 
 model Profile {
-  id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String   @unique
-  email     String
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String   @unique
+  email      String
+  fullName   String   // Added fullName field
+  unitNumber String?
+  phone      String?
+  role       String   @default("resident")
+  createdAt  DateTime @default(now())
 }
 
 model Invitation {
