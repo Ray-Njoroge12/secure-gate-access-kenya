@@ -26,7 +26,7 @@ import {
   Timer,
   Zap
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import apiClient from '@/lib/apiClient';
 import { toast } from '@/hooks/use-toast';
 
 interface AnalyticsData {
@@ -91,37 +91,31 @@ const AdvancedAnalyticsDashboard: React.FC = () => {
   const fetchAnalyticsData = useCallback(async () => {
     setLoading(true);
     try {
-      // Real-time metrics
-      const { data: visitors } = await supabase
-        .from('visitors')
-        .select('*')
-        .gte('created_at', new Date().toISOString().split('T')[0]);
+      // TODO: Replace with FastAPI analytics endpoints
+      // const visitorsResponse = await apiClient.getVisitors(new Date().toISOString().split('T')[0]);
+      // const visitors = visitorsResponse.data;
+      const visitors = []; // Placeholder until FastAPI endpoint is implemented
 
-      const { data: invitations } = await supabase
-        .from('invitations')
-        .select('*')
-        .eq('status', 'pending');
+      // const invitationsResponse = await apiClient.getInvitations('pending');
+      // const invitations = invitationsResponse.data;
+      const invitations = []; // Placeholder until FastAPI endpoint is implemented
 
-      const { data: incidents } = await supabase
-        .from('security_incidents')
-        .select('*')
-        .in('status', ['open', 'in_progress']);
+      // const incidentsResponse = await apiClient.getIncidents(['open', 'in_progress']);
+      // const incidents = incidentsResponse.data;
+      const incidents = []; // Placeholder until FastAPI endpoint is implemented
 
-      const { data: accessCodes } = await supabase
-        .from('access_codes')
-        .select('*')
-        .gte('created_at', new Date().toISOString().split('T')[0]);
+      // const accessCodesResponse = await apiClient.getAccessCodes(new Date().toISOString().split('T')[0]);
+      // const accessCodes = accessCodesResponse.data;
+      const accessCodes = []; // Placeholder until FastAPI endpoint is implemented
 
       // Security metrics
-      const { data: securityIncidents } = await supabase
-        .from('security_incidents')
-        .select('*')
-        .gte('created_at', getDateFilter(selectedPeriod.period));
+      // const securityIncidentsResponse = await apiClient.getSecurityIncidents(getDateFilter(selectedPeriod.period));
+      // const securityIncidents = securityIncidentsResponse.data;
+      const securityIncidents = []; // Placeholder until FastAPI endpoint is implemented
 
-      const { data: accessLogs } = await supabase
-        .from('access_logs')
-        .select('*')
-        .gte('created_at', getDateFilter(selectedPeriod.period));
+      // const accessLogsResponse = await apiClient.getAccessLogs(getDateFilter(selectedPeriod.period));
+      // const accessLogs = accessLogsResponse.data;
+      const accessLogs = []; // Placeholder until FastAPI endpoint is implemented
 
       // Calculate metrics
       const currentVisitors = accessCodes?.filter(code => 

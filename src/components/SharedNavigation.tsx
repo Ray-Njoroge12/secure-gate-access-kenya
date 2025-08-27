@@ -4,7 +4,7 @@ import { Shield, Users, QrCode, BarChart, User, LogOut, Menu, X, Bell, Home, Lay
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+// import { supabase } from "@/integrations/supabase/client"; // TODO: Remove supabase dependency
 import { useToast } from "@/hooks/use-toast";
 import { TenantSwitcher } from "@/components/TenantSwitcher";
 
@@ -26,41 +26,30 @@ export function SharedNavigation({ userRole, userName, userEmail }: SharedNaviga
     const fetchNotifications = async () => {
       try {
         let count = 0;
-        
+
         switch (userRole) {
           case 'resident': {
+            // TODO: Replace with actual FastAPI endpoint
             // Count pending invitations
-            const { data: invitations } = await supabase
-              .from('visit_invitations')
-              .select('id')
-              .eq('status', 'pending');
-            count = invitations?.length || 0;
+            count = Math.floor(Math.random() * 5); // Placeholder: random count
             break;
           }
-            
+
           case 'guard': {
+            // TODO: Replace with actual FastAPI endpoint
             // Count recent incidents
-            const { data: incidents } = await supabase
-              .from('audit_logs')
-              .select('id')
-              .eq('event_type', 'incident_reported')
-              .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-            count = incidents?.length || 0;
+            count = Math.floor(Math.random() * 3); // Placeholder: random count
             break;
           }
-            
+
           case 'admin': {
+            // TODO: Replace with actual FastAPI endpoint
             // Count system alerts
-            const { data: alerts } = await supabase
-              .from('audit_logs')
-              .select('id')
-              .in('event_type', ['security_alert', 'system_error'])
-              .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-            count = alerts?.length || 0;
+            count = Math.floor(Math.random() * 7); // Placeholder: random count
             break;
           }
         }
-        
+
         setNotifications(count);
       } catch (error) {
         console.error('Error fetching notifications:', error);
@@ -72,8 +61,10 @@ export function SharedNavigation({ userRole, userName, userEmail }: SharedNaviga
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // TODO: Replace with actual FastAPI logout endpoint
+      // For now, clear local storage and redirect
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_profile');
       toast({ title: "Logged Out", description: "You have been successfully logged out." });
       navigate('/login');
     } catch (error) {

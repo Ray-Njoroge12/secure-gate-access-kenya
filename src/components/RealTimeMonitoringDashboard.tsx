@@ -20,7 +20,7 @@ import {
   AlertCircle,
   TrendingUp
 } from 'lucide-react';
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useToast } from "@/hooks/use-toast";
 
@@ -91,38 +91,37 @@ export function RealTimeMonitoringDashboard({
     console.log('🔴 Starting real-time monitoring...');
 
     try {
-      // Subscribe to access code changes
-      const accessCodeSubscription = supabase
-        .channel('access-codes-monitor')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'access_codes' },
-          (payload) => {
-            handleAccessCodeEvent(payload);
-          }
-        )
-        .subscribe();
+      // TODO: Replace with WebSocket/SSE connection to FastAPI for real-time monitoring
+      // const ws = new WebSocket('ws://localhost:8000/ws/monitoring');
+      // ws.onmessage = (event) => handleAccessCodeEvent(JSON.parse(event.data));
+      
+      // Placeholder: Simulate real-time events with polling
+      const accessCodeSubscription = setInterval(() => {
+        // Simulate access code events
+        console.log('Simulating access code monitoring...');
+      }, 5000);
 
       // Subscribe to visitor logs
-      const visitorLogSubscription = supabase
-        .channel('visitor-logs-monitor')
-        .on('postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'visitor_logs' },
-          (payload) => {
-            handleVisitorLogEvent(payload);
-          }
-        )
-        .subscribe();
+      // TODO: Replace with WebSocket/SSE connection to FastAPI for real-time monitoring
+      // const ws = new WebSocket('ws://localhost:8000/ws/monitoring');
+      // ws.onmessage = (event) => handleVisitorLogEvent(JSON.parse(event.data));
+      
+      // Placeholder: Simulate real-time events with polling
+      const visitorLogSubscription = setInterval(() => {
+        // Simulate visitor log events
+        console.log('Simulating visitor log monitoring...');
+      }, 5000);
 
       // Subscribe to incident reports
-      const incidentSubscription = supabase
-        .channel('incidents-monitor')
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'incident_reports' },
-          (payload) => {
-            handleIncidentEvent(payload);
-          }
-        )
-        .subscribe();
+      // TODO: Replace with WebSocket/SSE connection to FastAPI for real-time monitoring
+      // const ws = new WebSocket('ws://localhost:8000/ws/monitoring');
+      // ws.onmessage = (event) => handleIncidentEvent(JSON.parse(event.data));
+      
+      // Placeholder: Simulate real-time events with polling
+      const incidentSubscription = setInterval(() => {
+        // Simulate incident events
+        console.log('Simulating incident monitoring...');
+      }, 5000);
 
       // System health check interval
       const healthCheckInterval = setInterval(async () => {
@@ -258,10 +257,10 @@ export function RealTimeMonitoringDashboard({
     
     try {
       // Test database connection
-      const { error: dbError } = await supabase
-        .from('profiles')
-        .select('id')
-        .limit(1);
+      // TODO: Replace with FastAPI health check endpoint
+      // const response = await apiClient.healthCheck();
+      // const dbError = response.error;
+      const dbError = null; // Placeholder until FastAPI health endpoint is implemented
 
       // Test authentication
       const responseTime = Date.now() - startTime;

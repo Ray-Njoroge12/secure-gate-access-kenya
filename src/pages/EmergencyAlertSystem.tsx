@@ -22,7 +22,7 @@ import {
   RotateCcw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 import { useNavigate } from "react-router-dom";
 import { useAuthSession } from "@/hooks/useAuthSession";
 
@@ -118,9 +118,8 @@ const EmergencyAlertSystem = () => {
         if (authLoading) return; // wait for auth resolution
         if (!session?.user) { navigate('/'); return; }
 
-        // Fetch all profiles and pick current (stub friendly)
-        const { data: profiles } = await supabase.from('profiles').select();
-        const profile = (profiles || []).find((p: any) => p.id === session.user.id || p.user_id === session.user.id) || null;
+        // Fetch user profile
+        const profile = await apiClient.getProfile();
 
         if (!profile) {
           toast({ title: 'Access Denied', description: 'Unable to verify your credentials', variant: 'destructive' });

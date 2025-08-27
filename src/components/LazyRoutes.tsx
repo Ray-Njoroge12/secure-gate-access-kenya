@@ -71,5 +71,8 @@ export const NotificationCenter = lazy(() => import('../pages/NotificationCenter
 // Visitor Registration Page (used in public routes)
 export const VisitorRegistration = lazy(() => import('../pages/VisitorRegistration').then(module => ({ default: module.VisitorRegistration })));
 
+// Invitation Management Page (for residents)
+export const InvitationManager = lazy(() => import('../pages/InvitationManager').then(module => ({ default: module.InvitationManager })));
+
 // Export the wrapper component
 export { LazyRoute, RouteLoadingFallback };

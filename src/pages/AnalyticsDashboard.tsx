@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 import {
   BarChart,
   Bar,
@@ -91,33 +91,23 @@ export function AnalyticsDashboard() {
     try {
       setLoading(true);
 
-      // Fetch visitor analytics
-      const { data: visitorData, error: visitorError } = await supabase
-        .rpc('get_visitor_analytics', {
-          p_start_date: dateRange.start,
-          p_end_date: dateRange.end
-        });
+      // TODO: Replace with FastAPI analytics endpoints
+      // const visitorResponse = await apiClient.getVisitorAnalytics(dateRange.start, dateRange.end);
+      // const visitorData = visitorResponse.data;
+      const visitorData = []; // Placeholder until FastAPI endpoint is implemented
+      const visitorError = null;
 
-      if (visitorError) throw visitorError;
+      // TODO: Replace with FastAPI analytics endpoints
+      // const securityResponse = await apiClient.getSecurityAnalytics(dateRange.start, dateRange.end);
+      // const securityData = securityResponse.data;
+      const securityData = []; // Placeholder until FastAPI endpoint is implemented
+      const securityError = null;
 
-      // Fetch security analytics
-      const { data: securityData, error: securityError } = await supabase
-        .rpc('get_security_analytics', {
-          p_start_date: dateRange.start,
-          p_end_date: dateRange.end
-        });
-
-      if (securityError) throw securityError;
-
-      // Fetch performance metrics
-      const { data: performanceData, error: performanceError } = await supabase
-        .from('performance_metrics')
-        .select('*')
-        .gte('recorded_at', `${dateRange.start}T00:00:00Z`)
-        .lte('recorded_at', `${dateRange.end}T23:59:59Z`)
-        .order('recorded_at', { ascending: false });
-
-      if (performanceError) throw performanceError;
+      // TODO: Replace with FastAPI analytics endpoints
+      // const performanceResponse = await apiClient.getPerformanceMetrics(dateRange.start, dateRange.end);
+      // const performanceData = performanceResponse.data;
+      const performanceData = []; // Placeholder until FastAPI endpoint is implemented
+      const performanceError = null;
 
       // Process performance data
       const processedPerformance = {

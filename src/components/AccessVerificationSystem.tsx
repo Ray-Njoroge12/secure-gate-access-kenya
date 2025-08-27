@@ -19,7 +19,7 @@ import {
 import { QRCodeScanner } from "./QRCodeScanner";
 import { PINEntry } from "./PINEntry";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 import { api } from "@/lib/apiClient";
 import { useTenant } from "@/context/TenantProvider";
 
@@ -57,7 +57,7 @@ export function AccessVerificationSystem({
 
   const loadRecentAccess = async () => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (apiClient as any)
         .from('access_logs')
         .select(`
           *,
@@ -66,7 +66,6 @@ export function AccessVerificationSystem({
             visit_invitations (
               residents (full_name, unit_number)
             )
-          )
         `)
         .eq('community_id', activeCommunityId as string)
         .order('timestamp', { ascending: false })
@@ -95,7 +94,7 @@ export function AccessVerificationSystem({
     
     try {
       // Use edge function to verify with tenant enforcement
-      const { data, error } = await supabase.functions.invoke('verify-access-code', {
+      const { data, error } = await apiClient.functions.invoke('verify-access-code', {
         body: { code: accessCode, method, community_id: activeCommunityId },
       });
 
@@ -109,7 +108,7 @@ export function AccessVerificationSystem({
       let accessData = apiResult && apiResult.ok ? { expires_at: new Date(Date.now()+10*60*1000).toISOString(), visitors: {}, visit_invitations: {} } : data?.access_code;
       // Fallback to direct table query if edge function not available
       if (error || !accessData) {
-        const { data: direct, error: directErr } = await (supabase as any)
+        const { data: direct, error: directErr } = await (apiClient as any)
           .from('access_codes')
           .select(`
             *,
@@ -143,216 +142,216 @@ export function AccessVerificationSystem({
         onAccessDenied?.(errorMessage);
         toast({
           title: "Access Denied",
+            description: errorMessage,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Prepare access data
+        const verifiedAccess: AccessData = {
+          visitorName: accessData.visitors?.full_name || 'Unknown Visitor',
+          residentName: accessData.visit_invitations?.residents?.full_name || 'Unknown Resident',
+          unitNumber: accessData.visit_invitations?.residents?.unit_number || 'Unknown',
+          accessMethod: method,
+          timestamp: now,
+          validUntil: expiresAt,
+          phoneNumber: accessData.visitors?.phone_number,
+          emergencyContact: accessData.visitors?.emergency_contact
+        };
+
+        setLastAccessData(verifiedAccess);
+        onAccessGranted?.(verifiedAccess);
+
+        // Log the access
+        await (apiClient as any).from('access_logs').insert({
+          access_code_id: accessData.id,
+          access_method: method,
+          guard_id: (await apiClient.auth.getUser()).data.user?.id,
+          timestamp: now.toISOString(),
+          status: 'success',
+          community_id: activeCommunityId,
+        });
+
+        // Update recent access
+        setRecentAccess(prev => [verifiedAccess, ...prev.slice(0, 4)]);
+
+        toast({
+          title: "Access Granted",
+          description: `${verifiedAccess.visitorName} verified successfully`,
+          duration: 5000,
+        });
+
+      } catch (error) {
+        const errorMessage = "Verification failed. Please try again.";
+        onAccessDenied?.(errorMessage);
+        toast({
+          title: "Verification Error",
           description: errorMessage,
           variant: "destructive",
         });
-        return;
+      } finally {
+        setIsProcessing(false);
       }
+    };
 
-      // Prepare access data
-      const verifiedAccess: AccessData = {
-        visitorName: accessData.visitors?.full_name || 'Unknown Visitor',
-        residentName: accessData.visit_invitations?.residents?.full_name || 'Unknown Resident',
-        unitNumber: accessData.visit_invitations?.residents?.unit_number || 'Unknown',
-        accessMethod: method,
-        timestamp: now,
-        validUntil: expiresAt,
-        phoneNumber: accessData.visitors?.phone_number,
-        emergencyContact: accessData.visitors?.emergency_contact
-      };
+    const handleQRSuccess = (data: string) => {
+      handleAccessCodeVerification(data, 'qr');
+    };
 
-      setLastAccessData(verifiedAccess);
-      onAccessGranted?.(verifiedAccess);
+    const handlePINSuccess = (accessCode: string) => {
+      handleAccessCodeVerification(accessCode, 'pin');
+    };
 
-      // Log the access
-      await (supabase as any).from('access_logs').insert({
-        access_code_id: accessData.id,
-        access_method: method,
-        guard_id: (await supabase.auth.getUser()).data.user?.id,
-        timestamp: now.toISOString(),
-        status: 'success',
-        community_id: activeCommunityId,
-      });
+    const formatTimeRemaining = (validUntil: Date) => {
+      const now = new Date();
+      const diff = validUntil.getTime() - now.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+      }
+      return `${minutes}m`;
+    };
 
-      // Update recent access
-      setRecentAccess(prev => [verifiedAccess, ...prev.slice(0, 4)]);
+    const getAccessStatusColor = (validUntil: Date) => {
+      const now = new Date();
+      const diff = validUntil.getTime() - now.getTime();
+      const hoursRemaining = diff / (1000 * 60 * 60);
+      
+      if (hoursRemaining > 2) return "bg-green-500";
+      if (hoursRemaining > 1) return "bg-yellow-500";
+      return "bg-red-500";
+    };
 
-      toast({
-        title: "Access Granted",
-        description: `${verifiedAccess.visitorName} verified successfully`,
-        duration: 5000,
-      });
-
-    } catch (error) {
-      const errorMessage = "Verification failed. Please try again.";
-      onAccessDenied?.(errorMessage);
-      toast({
-        title: "Verification Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleQRSuccess = (data: string) => {
-    handleAccessCodeVerification(data, 'qr');
-  };
-
-  const handlePINSuccess = (accessCode: string) => {
-    handleAccessCodeVerification(accessCode, 'pin');
-  };
-
-  const formatTimeRemaining = (validUntil: Date) => {
-    const now = new Date();
-    const diff = validUntil.getTime() - now.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
-  };
-
-  const getAccessStatusColor = (validUntil: Date) => {
-    const now = new Date();
-    const diff = validUntil.getTime() - now.getTime();
-    const hoursRemaining = diff / (1000 * 60 * 60);
-    
-    if (hoursRemaining > 2) return "bg-green-500";
-    if (hoursRemaining > 1) return "bg-yellow-500";
-    return "bg-red-500";
-  };
-
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Access Verification System
-          </CardTitle>
-          <CardDescription>
-            Verify visitor access using QR code or PIN entry
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'qr' | 'pin')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="qr" className="flex items-center gap-2">
-                <Camera className="h-4 w-4" />
-                QR Scanner
-              </TabsTrigger>
-              <TabsTrigger value="pin" className="flex items-center gap-2">
-                <KeyRound className="h-4 w-4" />
-                PIN Entry
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="qr" className="mt-6">
-              <QRCodeScanner
-                onScanSuccess={handleQRSuccess}
-                onError={(error) => toast({
-                  title: "Scanner Error",
-                  description: error,
-                  variant: "destructive",
-                })}
-                isActive={activeTab === 'qr'}
-              />
-            </TabsContent>
-            
-            <TabsContent value="pin" className="mt-6">
-              <PINEntry
-                onSuccess={handlePINSuccess}
-                onError={(error) => toast({
-                  title: "PIN Error",
-                  description: error,
-                  variant: "destructive",
-                })}
-              />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Last Access Result */}
-      {lastAccessData && (
+    return (
+      <div className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              Access Granted
+              <Shield className="h-5 w-5" />
+              Access Verification System
+            </CardTitle>
+            <CardDescription>
+              Verify visitor access using QR code or PIN entry
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'qr' | 'pin')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="qr" className="flex items-center gap-2">
+                  <Camera className="h-4 w-4" />
+                  QR Scanner
+                </TabsTrigger>
+                <TabsTrigger value="pin" className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4" />
+                  PIN Entry
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="qr" className="mt-6">
+                <QRCodeScanner
+                  onScanSuccess={handleQRSuccess}
+                  onError={(error) => toast({
+                    title: "Scanner Error",
+                    description: error,
+                    variant: "destructive",
+                  })}
+                  isActive={activeTab === 'qr'}
+                />
+              </TabsContent>
+              
+              <TabsContent value="pin" className="mt-6">
+                <PINEntry
+                  onSuccess={handlePINSuccess}
+                  onError={(error) => toast({
+                    title: "PIN Error",
+                    description: error,
+                    variant: "destructive",
+                  })}
+                />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Last Access Result */}
+        {lastAccessData && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                Access Granted
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{lastAccessData.visitorName}</span>
+                  <Badge variant="outline">
+                    {lastAccessData.accessMethod.toUpperCase()}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span>Visiting {lastAccessData.residentName} • Unit {lastAccessData.unitNumber}</span>
+                </div>
+                
+                {lastAccessData.phoneNumber && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span>{lastAccessData.phoneNumber}</span>
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span>Valid for {formatTimeRemaining(lastAccessData.validUntil)}</span>
+                  <div className={`w-2 h-2 rounded-full ${getAccessStatusColor(lastAccessData.validUntil)}`} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recent Access History */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Recent Access
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{lastAccessData.visitorName}</span>
-                <Badge variant="outline">
-                  {lastAccessData.accessMethod.toUpperCase()}
-                </Badge>
+            {recentAccess.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">
+                No recent access records
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {recentAccess.map((access, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="text-xs">
+                        {access.accessMethod.toUpperCase()}
+                      </Badge>
+                      <div>
+                        <p className="font-medium">{access.visitorName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Unit {access.unitNumber} • {access.timestamp.toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`w-2 h-2 rounded-full ${getAccessStatusColor(access.validUntil)}`} />
+                  </div>
+                ))}
               </div>
-              
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>Visiting {lastAccessData.residentName} • Unit {lastAccessData.unitNumber}</span>
-              </div>
-              
-              {lastAccessData.phoneNumber && (
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{lastAccessData.phoneNumber}</span>
-                </div>
-              )}
-              
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span>Valid for {formatTimeRemaining(lastAccessData.validUntil)}</span>
-                <div className={`w-2 h-2 rounded-full ${getAccessStatusColor(lastAccessData.validUntil)}`} />
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
-      )}
-
-      {/* Recent Access History */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Recent Access
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentAccess.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">
-              No recent access records
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {recentAccess.map((access, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="text-xs">
-                      {access.accessMethod.toUpperCase()}
-                    </Badge>
-                    <div>
-                      <p className="font-medium">{access.visitorName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Unit {access.unitNumber} • {access.timestamp.toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className={`w-2 h-2 rounded-full ${getAccessStatusColor(access.validUntil)}`} />
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+      </div>
+    );
+  }

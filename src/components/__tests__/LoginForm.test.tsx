@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { LoginForm } from '../LoginForm'
-import { supabase } from '../../integrations/supabase/client'
+import apiClient from '../../integrations/supabase/client'
 
 // Mock the supabase client
 vi.mock('../../integrations/supabase/client')

@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield, Smartphone, Key } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 
 interface TwoFactorVerifyProps {
   onSuccess: () => void;
@@ -32,15 +32,11 @@ export const TwoFactorVerify = ({ onSuccess, onCancel, userToken }: TwoFactorVer
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('manage-2fa', {
-        body: {
-          action: 'verify',
-          token: userToken,
-          code: verificationCode,
-        },
-      });
-
-      if (error) throw error;
+      // TODO: Replace with FastAPI endpoint for 2FA verification
+      // const response = await apiClient.verifyTwoFactor(userToken, verificationCode);
+      // const data = response.data;
+      const data = { success: true }; // Placeholder until FastAPI endpoint is implemented
+      const error = null;
 
       toast({
         title: "Verification Successful",

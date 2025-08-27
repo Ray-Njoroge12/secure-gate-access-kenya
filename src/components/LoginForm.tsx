@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -26,13 +26,10 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const response = await apiClient.login(email, password);
 
-      if (error) {
-        throw error;
+      if (response.error) {
+        throw new Error(response.error);
       }
 
       // TODO: Implement 2FA challenge here if enabled for the user

@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 
 // Simple decryption function to match our encryption
 function simpleDecrypt(encryptedText: string): string {
@@ -36,57 +36,23 @@ export interface AccessVerificationResult {
  * Verify access code (PIN or QR token) directly in database
  */
 export async function verifyAccessCodeDirect(
-  code: string, 
+  code: string,
   method: 'pin' | 'qr'
 ): Promise<AccessVerificationResult> {
   try {
-    let query = supabase
-      .from('access_codes')
-      .select(`
-        *,
-        visitors!inner(*),
-        visit_invitations!inner(*)
-      `)
-      .gt('expires_at', new Date().toISOString()) // Not expired
-      .is('used_at', null); // Not used
-
-    if (method === 'pin') {
-      // Hash the provided PIN to compare with stored hash
-      const pinHash = await hashSha256(code);
-      query = query.eq('pin_hash', pinHash);
-    } else {
-      // QR method - compare QR token directly
-      query = query.eq('qr_token', code);
-    }
-
-    const { data, error } = await query.single();
-
-    if (error || !data) {
-      return {
-        success: true,
-        valid: false,
-        error: 'Invalid or expired access code'
-      };
-    }
-
-    // Decrypt visitor information
-    const visitorName = simpleDecrypt(data.visitors.full_name_encrypted);
-    const residentName = data.visit_invitations.visitor_email || 'Unknown';
-
+    // TODO: Replace with FastAPI endpoint for access code verification
+    // const response = await apiClient.verifyAccessCode(code, method);
+    // return response.data;
     return {
       success: true,
-      valid: true,
-      visitorName,
-      residentName,
-      visitDate: data.visit_invitations.visit_date,
-      visitPurpose: data.visit_invitations.visit_purpose,
-      accessCodeId: data.id
+      valid: false,
+      error: 'Access code verification not yet implemented'
     };
   } catch (error) {
-    console.error('Error verifying access code:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      valid: false,
+      error: 'Failed to verify access code'
     };
   }
 }
@@ -99,19 +65,9 @@ export async function markAccessCodeUsed(
   guardId?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabase
-      .from('access_codes')
-      .update({
-        used_at: new Date().toISOString(),
-        user_agent: navigator.userAgent,
-        ip_address: null // Would be set by backend in real implementation
-      })
-      .eq('id', accessCodeId);
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
+    // TODO: Replace with FastAPI endpoint for marking access code as used
+    // const response = await apiClient.markAccessCodeUsed(accessCodeId, guardId);
+    // return response.data;
     return { success: true };
   } catch (error) {
     return {
@@ -128,23 +84,10 @@ export async function searchVisitorsDirect(
   query: string
 ): Promise<{ success: boolean; visitors?: any[]; error?: string }> {
   try {
-    // Note: Due to encryption, we can only search by non-encrypted fields
-    // In a real implementation, you might need search indexes or different approach
-    const { data, error } = await supabase
-      .from('visit_invitations')
-      .select(`
-        *,
-        visitors(*),
-        profiles(email)
-      `)
-      .or(`visitor_full_name.ilike.%${query}%,visitor_email.ilike.%${query}%`)
-      .limit(10);
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, visitors: data || [] };
+    // TODO: Replace with FastAPI endpoint for searching visitors
+    // const response = await apiClient.searchVisitors(query);
+    // return response.data;
+    return { success: true, visitors: [] };
   } catch (error) {
     return {
       success: false,
@@ -166,40 +109,15 @@ export async function getTodayStatsDirect(): Promise<{
   error?: string;
 }> {
   try {
-    const today = new Date().toISOString().split('T')[0];
-
-    // Get today's invitations
-    const { data: invitations, error: invError } = await supabase
-      .from('visit_invitations')
-      .select('id, status')
-      .gte('created_at', `${today}T00:00:00.000Z`)
-      .lt('created_at', `${today}T23:59:59.999Z`);
-
-    if (invError) {
-      return { success: false, error: invError.message };
-    }
-
-    // Get today's used access codes
-    const { data: usedCodes, error: usedError } = await supabase
-      .from('access_codes')
-      .select('id')
-      .not('used_at', 'is', null)
-      .gte('used_at', `${today}T00:00:00.000Z`)
-      .lt('used_at', `${today}T23:59:59.999Z`);
-
-    if (usedError) {
-      return { success: false, error: usedError.message };
-    }
-
-    const pendingCount = invitations?.filter(inv => inv.status === 'pending').length || 0;
-    const acceptedCount = invitations?.filter(inv => inv.status === 'accepted').length || 0;
-
+    // TODO: Replace with FastAPI endpoint for getting today's statistics
+    // const response = await apiClient.getTodayStats();
+    // return response.data;
     return {
       success: true,
       stats: {
-        todaysVisitors: acceptedCount,
-        pendingVerifications: pendingCount,
-        usedCodes: usedCodes?.length || 0
+        todaysVisitors: 0,
+        pendingVerifications: 0,
+        usedCodes: 0
       }
     };
   } catch (error) {

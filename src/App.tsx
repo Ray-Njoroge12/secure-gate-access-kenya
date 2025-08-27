@@ -62,6 +62,9 @@ import {
   // Visitor Registration
   VisitorRegistration,
   
+  // Invitation Management
+  InvitationManager,
+  
   // Route wrapper
   RouteLoadingFallback
 } from "./components/LazyRoutes";
@@ -171,6 +174,10 @@ const AppContent = () => {
             <Route
               path="/resident-dashboard"
               element={<ProtectedRoute requiredRole="resident"><ResidentDashboard /></ProtectedRoute>}
+            />
+            <Route
+              path="/invitations"
+              element={<ProtectedRoute requiredRole="resident"><InvitationManager /></ProtectedRoute>}
             />
             <Route
               path="/analytics"

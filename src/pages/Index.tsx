@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Shield, Users, QrCode, Clock, ExternalLink, BarChart, User, LogOut, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { apiClient } from "@/integrations/supabase/client";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useToast } from "@/hooks/use-toast";
 
@@ -54,8 +53,8 @@ const Index = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await apiClient.signOut();
-      if (response.error) throw new Error(response.error);
+      // Remove token from localStorage for client-side logout
+      localStorage.removeItem('token');
       toast({ title: "Logged Out", description: "You have been successfully logged out." });
       navigate('/login');
     } catch (error) {
