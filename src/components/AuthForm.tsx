@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/apiClient";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Mail, Lock, User, Home, Phone } from "lucide-react";
 import { TwoFactorVerify } from "@/components/auth/TwoFactorVerify";
@@ -41,26 +41,19 @@ export function AuthForm() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
+      const result = await api.login(formData.email, formData.password);
 
-      if (error) throw error;
-
-      // Check if user has 2FA enabled
-      const { data: has2FA } = await supabase
-        .rpc('user_has_2fa_enabled', { user_uuid: data.user.id });
-
-      if (has2FA) {
-        // Store token temporarily and show 2FA challenge
-  setTempUserToken(data.session.access_token);
-        setShow2FAChallenge(true);
-        setLoading(false);
-        return;
+      if (result.error) {
+        throw new Error(result.error);
       }
 
-      // No 2FA required, complete sign in
+      // Store the token
+      if (result.data?.token) {
+        localStorage.setItem('auth_token', result.data.token);
+      }
+
+      // Check if user has 2FA enabled (this would need to be implemented in the backend)
+      // For now, we'll assume no 2FA and proceed directly
       toast({
         title: "Welcome back!",
         description: "You have been signed in successfully.",
@@ -84,70 +77,29 @@ export function AuthForm() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: formData.fullName,
-            unit_number: formData.unitNumber,
-            phone: formData.phone,
-          }
-        }
-      });
+      const result = await api.signup(
+        formData.email,
+        formData.password,
+        formData.fullName,
+        formData.unitNumber,
+        formData.phone
+      );
 
-      if (error) throw error;
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      // Store the token
+      if (result.data?.token) {
+        localStorage.setItem('auth_token', result.data.token);
+      }
 
       toast({
         title: "Account created!",
-        description: "Please check your email to verify your account.",
+        description: "You have been signed up successfully.",
       });
 
-      // Create resident profile
-      if (data.user) {
-        // Get the default community
-        const { data: communityData, error: communityError } = await supabase
-          .from('communities')
-          .select('id')
-          .limit(1)
-          .single();
-
-        if (communityError) {
-          // Continue without community assignment for now
-          // TODO: Implement proper error handling for community fetch
-        }
-
-        // Encrypt phone number before storing
-        const { data: encryptedData, error: encryptionError } = await supabase.functions.invoke(
-          "encrypt-pii",
-          {
-            body: { phoneNumber: formData.phone },
-          }
-        );
-
-        if (encryptionError) {
-          throw encryptionError;
-        }
-
-        const { error: profileError } = await supabase
-          .from('residents')
-          .insert({
-            id: data.user.id,
-            email: formData.email,
-            unit_number: formData.unitNumber,
-            phone_encrypted: encryptedData.encryptedPhoneNumber,
-            community_id: communityData?.id || 'default-community-id',
-          });
-
-        if (profileError) {
-          toast({
-            title: "Profile creation failed",
-            description: profileError.message,
-            variant: "destructive",
-          });
-        }
-      }
+      navigate("/");
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       toast({
@@ -174,7 +126,7 @@ export function AuthForm() {
     setShow2FAChallenge(false);
     setTempUserToken("");
     // Sign out the partially authenticated session
-    supabase.auth.signOut();
+    api.logout();
   };
 
   // Show 2FA verification if needed

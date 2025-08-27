@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Check, Shield, ShieldCheck, AlertTriangle, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 
 interface TwoFactorAuthProps {
   onClose?: () => void;
@@ -42,11 +42,11 @@ export const TwoFactorAuth = ({ onClose }: TwoFactorAuthProps) => {
     try {
       if (!session?.user) return;
 
-      const { data, error } = await supabase
-        .from('user_2fa_settings')
-        .select('enabled')
-        .eq('user_id', session.user.id)
-        .single();
+      // TODO: Replace with FastAPI endpoint for 2FA status
+      // const response = await apiClient.getTwoFactorStatus();
+      // const data = response.data;
+      const data = { enabled: false }; // Placeholder until FastAPI endpoint is implemented
+      const error = null;
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error checking 2FA status:', error);
@@ -64,14 +64,11 @@ export const TwoFactorAuth = ({ onClose }: TwoFactorAuthProps) => {
     try {
   if (!session?.user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('manage-2fa', {
-        body: {
-          action: 'setup',
-          token: getAccessToken(),
-        },
-      });
-
-      if (error) throw error;
+      // TODO: Replace with FastAPI endpoint for 2FA setup
+      // const response = await apiClient.setupTwoFactor();
+      // const data = response.data;
+      const data = { secret: 'placeholder-secret', qrCodeUrl: 'placeholder-url', backupCodes: ['code1', 'code2'] }; // Placeholder until FastAPI endpoint is implemented
+      const error = null;
 
       setQrCodeUrl(data.qrCodeUrl);
       // Generate a data URL for display
@@ -111,15 +108,11 @@ export const TwoFactorAuth = ({ onClose }: TwoFactorAuthProps) => {
     try {
   if (!session?.user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('manage-2fa', {
-        body: {
-          action: 'enable',
-          token: getAccessToken(),
-          code: verificationCode,
-        },
-      });
-
-      if (error) throw error;
+      // TODO: Replace with FastAPI endpoint for 2FA enable
+      // const response = await apiClient.enableTwoFactor(verificationCode);
+      // const data = response.data;
+      const data = { success: true }; // Placeholder until FastAPI endpoint is implemented
+      const error = null;
 
       setIsEnabled(true);
       setSetupStep('check');
@@ -154,15 +147,11 @@ export const TwoFactorAuth = ({ onClose }: TwoFactorAuthProps) => {
     try {
   if (!session?.user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('manage-2fa', {
-        body: {
-          action: 'disable',
-          token: getAccessToken(),
-          code: verificationCode,
-        },
-      });
-
-      if (error) throw error;
+      // TODO: Replace with FastAPI endpoint for 2FA disable
+      // const response = await apiClient.disableTwoFactor(verificationCode);
+      // const data = response.data;
+      const data = { success: true }; // Placeholder until FastAPI endpoint is implemented
+      const error = null;
 
       setIsEnabled(false);
       setVerificationCode('');

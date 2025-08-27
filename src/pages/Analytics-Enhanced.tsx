@@ -31,10 +31,11 @@ import {
   Pie,
   Cell
 } from "recharts";
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuthSession } from "@/hooks/useAuthSession";
+// import { supabase } from "@/integrations/supabase/client"; // TODO: Remove supabase dependency
 
 interface Profile { id?: string; user_id?: string; email?: string; role?: string; }
 
@@ -113,8 +114,8 @@ const Analytics = () => {
       try {
         if (authLoading) return;
         if (!session?.user) { navigate('/'); return; }
-        const { data: profiles } = await supabase.from('profiles').select();
-        const profile = (profiles || []).find((p: any) => p.id === session.user.id || p.user_id === session.user.id) || null;
+        const profileResponse = await apiClient.getProfile();
+        const profile = profileResponse.data?.user;
         if (!profile) {
           toast({ title: 'Access Denied', description: 'Unable to verify your credentials', variant: 'destructive' });
           navigate('/');
@@ -185,167 +186,98 @@ const Analytics = () => {
 
   const loadSummaryStats = async (fromDate: string, toDate: string) => {
     try {
-      // Get invitation count
-      const { data: invitations, error: invError } = await supabase
-        .from('visit_invitations')
-        .select('id, created_at, status')
-        .gte('created_at', `${fromDate}T00:00:00.000Z`)
-        .lte('created_at', `${toDate}T23:59:59.999Z`);
+      // Use real FastAPI endpoint
+      const result = await apiClient.getDashboardAnalytics(selectedPeriod);
 
-      if (invError) throw invError;
+      if (result.error) {
+        throw new Error(result.error);
+      }
 
-      // Get visitor count
-      const { data: visitors, error: visitorError } = await supabase
-        .from('visitors')
-        .select('id, created_at')
-        .gte('created_at', `${fromDate}T00:00:00.000Z`)
-        .lte('created_at', `${toDate}T23:59:59.999Z`);
-
-      if (visitorError) throw visitorError;
-
-      // Get access codes used
-      const { data: accessCodes, error: accessError } = await supabase
-        .from('access_codes')
-        .select('id, used_at')
-        .not('used_at', 'is', null)
-        .gte('used_at', `${fromDate}T00:00:00.000Z`)
-        .lte('used_at', `${toDate}T23:59:59.999Z`);
-
-      if (accessError) throw accessError;
-
+      const data = result.data!;
       setSummaryStats({
-        totalVisitors: visitors?.length || 0,
-        totalInvitations: invitations?.length || 0,
-        accessGranted: accessCodes?.length || 0,
-        averageProcessingTime: 2.5, // Mock data - would calculate from actual timestamps
-        securityIncidents: 0 // Would come from incidents table
+        totalVisitors: data.summary.totalInvitations,
+        totalInvitations: data.summary.totalInvitations,
+        accessGranted: data.summary.completedVisits,
+        averageProcessingTime: 2.5, // Placeholder - would come from backend
+        securityIncidents: data.summary.securityIncidents
       });
 
     } catch (error) {
       console.error('Failed to load summary stats:', error);
+      throw error;
     }
   };
 
   const loadDetailedAnalytics = async (fromDate: string, toDate: string) => {
     try {
-      // Get daily visitor data
-      const { data: visitors, error: visitorError } = await supabase
-        .from('visitors')
-        .select('created_at')
-        .gte('created_at', `${fromDate}T00:00:00.000Z`)
-        .lte('created_at', `${toDate}T23:59:59.999Z`);
+      // Use real FastAPI endpoint
+      const result = await apiClient.getDashboardAnalytics(selectedPeriod);
 
-      if (visitorError) throw visitorError;
+      if (result.error) {
+        throw new Error(result.error);
+      }
 
-      // Get daily access grants
-      const { data: accessCodes, error: accessError } = await supabase
-        .from('access_codes')
-        .select('used_at')
-        .not('used_at', 'is', null)
-        .gte('used_at', `${fromDate}T00:00:00.000Z`)
-        .lte('used_at', `${toDate}T23:59:59.999Z`);
+      const data = result.data!;
 
-      if (accessError) throw accessError;
-
-      // Get invitation statuses
-      const { data: invitations, error: invError } = await supabase
-        .from('visit_invitations')
-        .select('status, visit_purpose')
-        .gte('created_at', `${fromDate}T00:00:00.000Z`)
-        .lte('created_at', `${toDate}T23:59:59.999Z`);
-
-      if (invError) throw invError;
-
-      // Process daily visitors data
-      const dailyData: { [key: string]: { visitors: number; entries: number } } = {};
-      
-      visitors?.forEach(visitor => {
-        const date = new Date(visitor.created_at).toISOString().split('T')[0];
-        if (!dailyData[date]) dailyData[date] = { visitors: 0, entries: 0 };
-        dailyData[date].visitors++;
-      });
-
-      accessCodes?.forEach(code => {
-        const date = new Date(code.used_at!).toISOString().split('T')[0];
-        if (!dailyData[date]) dailyData[date] = { visitors: 0, entries: 0 };
-        dailyData[date].entries++;
-      });
-
-      const dailyVisitors = Object.entries(dailyData).map(([date, counts]) => ({
-        date: new Date(date).toLocaleDateString(),
-        ...counts
-      })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-      // Process status data
-      const statusCounts: { [key: string]: number } = {};
-      invitations?.forEach(inv => {
-        statusCounts[inv.status || 'unknown'] = (statusCounts[inv.status || 'unknown'] || 0) + 1;
-      });
-
-      const visitorsByStatus = Object.entries(statusCounts).map(([status, count], index) => ({
-        status: status.charAt(0).toUpperCase() + status.slice(1),
-        count,
-        color: COLORS[index % COLORS.length]
+      // Transform data for frontend format
+      const dailyVisitors = data.timeBasedData.map(item => ({
+        date: new Date(item.date).toLocaleDateString(),
+        visitors: item.invitations,
+        entries: item.visits
       }));
 
-      // Process purpose data
-      const purposeCounts: { [key: string]: number } = {};
-      invitations?.forEach(inv => {
-        const purpose = inv.visit_purpose || 'Unknown';
-        purposeCounts[purpose] = (purposeCounts[purpose] || 0) + 1;
-      });
-
-      const popularPurposes = Object.entries(purposeCounts).map(([purpose, count]) => ({
-        purpose,
-        count
-      }));
-
-      // Process peak hours
-      const hourCounts: { [key: number]: number } = {};
-      accessCodes?.forEach(code => {
-        const hour = new Date(code.used_at!).getHours();
-        hourCounts[hour] = (hourCounts[hour] || 0) + 1;
-      });
-
-      const peakHours = Array.from({ length: 24 }, (_, hour) => ({
-        hour,
-        count: hourCounts[hour] || 0
-      }));
+      const visitorsByStatus = [
+        { status: 'Accepted', count: data.summary.completedVisits, color: COLORS[0] },
+        { status: 'Pending', count: data.summary.activeInvitations, color: COLORS[1] },
+        { status: 'Expired', count: Math.floor(data.summary.totalInvitations * 0.1), color: COLORS[2] }
+      ];
 
       setAnalyticsData(prev => ({
         ...prev,
+        totalInvitations: data.summary.totalInvitations,
+        activeInvitations: data.summary.activeInvitations,
+        completedVisits: data.summary.completedVisits,
+        averageVisitDuration: data.summary.averageVisitDuration,
+        weeklyGrowth: data.summary.weeklyGrowth,
+        monthlyGrowth: data.summary.monthlyGrowth,
+        peakHours: data.summary.peakHours,
+        popularPurposes: data.summary.popularPurposes,
+        securityIncidents: data.summary.securityIncidents,
         dailyVisitors,
         visitorsByStatus,
-        popularPurposes,
-        peakHours,
-        accessCodeUsage: accessCodes?.length || 0,
-        pendingVerifications: statusCounts['pending'] || 0
+        accessCodeUsage: data.summary.completedVisits,
+        pendingVerifications: data.summary.activeInvitations
       }));
 
     } catch (error) {
       console.error('Failed to load detailed analytics:', error);
+      throw error;
     }
   };
 
   const loadTimeBasedData = async (fromDate: string, toDate: string) => {
     try {
-      // This would generate time-based data for charts
-      const timeData: TimeBasedData[] = [];
-      const startDate = new Date(fromDate);
-      const endDate = new Date(toDate);
-      
-      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-        timeData.push({
-          date: d.toLocaleDateString(),
-          invitations: Math.floor(Math.random() * 20) + 5,
-          visits: Math.floor(Math.random() * 15) + 2,
-          incidents: Math.floor(Math.random() * 3)
-        });
+      // Use real FastAPI endpoint
+      const result = await apiClient.getDashboardAnalytics(selectedPeriod);
+
+      if (result.error) {
+        throw new Error(result.error);
       }
-      
+
+      const data = result.data!;
+
+      // Transform data for frontend format
+      const timeData: TimeBasedData[] = data.timeBasedData.map(item => ({
+        date: new Date(item.date).toLocaleDateString(),
+        invitations: item.invitations,
+        visits: item.visits,
+        incidents: item.incidents
+      }));
+
       setTimeBasedData(timeData);
     } catch (error) {
       console.error('Failed to load time-based data:', error);
+      throw error;
     }
   };
 

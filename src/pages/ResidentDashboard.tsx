@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, Users, QrCode, Clock, Plus, Mail, CheckCircle, Activity } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useToast } from "@/hooks/use-toast";
 import { SharedNavigation } from "@/components/SharedNavigation";
@@ -47,32 +47,30 @@ const ResidentDashboard = () => {
         if (authLoading) return; // wait for auth
         if (!session?.user) { navigate('/login'); return; }
 
-        // Fetch profiles and pick current user (stub friendly)
-        const { data: allProfiles } = await supabase.from('profiles').select();
-        const profile = (allProfiles || []).find((p: any) => p.id === session.user.id || p.user_id === session.user.id) || null;
-        if (profile) setUserProfile(profile);
+        // Fetch user profile and stats using new API
+        const profileResult = await apiClient.getProfile();
+        if (profileResult.data?.user) {
+          const userProfile = profileResult.data.user;
+          setUserProfile(userProfile);
 
-        // Role gate (allow through if missing role in stub)
-        if (profile && profile.role && profile.role !== 'resident') {
-          toast({
-            title: 'Access Denied',
-            description: 'You need resident privileges to access this dashboard',
-            variant: 'destructive'
-          });
-          navigate('/');
-          return;
+          // Role gate
+          if (userProfile.role && userProfile.role !== 'resident') {
+            toast({
+              title: 'Access Denied',
+              description: 'You need resident privileges to access this dashboard',
+              variant: 'destructive'
+            });
+            navigate('/');
+            return;
+          }
         }
 
-        // Build simple stats from invitations table (stub data)
-        const { data: invitations } = await supabase.from('invitations').select();
-        const invitationsList = invitations || [];
-        setStats({
-          activeInvitations: invitationsList.filter((i: any) => i.status === 'ACCEPTED').length || 0,
-          totalInvitations: invitationsList.length || 0,
-            pendingInvitations: invitationsList.filter((i: any) => (i.status || '').toLowerCase() === 'pending' || i.status === 'PENDING').length || 0,
-          completedVisits: invitationsList.filter((i: any) => i.status === 'COMPLETED').length || 0,
-          recentVisitors: invitationsList.slice(-5).length || 0
-        });
+        // Fetch resident stats
+        const statsResult = await apiClient.getResidentStats();
+        if (statsResult.data) {
+          setStats(statsResult.data);
+        }
+
         setError(null);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'An unknown error occurred';

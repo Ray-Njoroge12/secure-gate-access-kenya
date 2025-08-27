@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+// import { supabase } from "@/integrations/supabase/client"; // TODO: Remove supabase dependency
 
 // Simple encryption functions (for testing - should be enhanced in production)
 function simpleEncrypt(text: string): string {
@@ -67,38 +67,35 @@ export async function createInvitationDirect(data: InvitationData): Promise<{ su
     const invitationToken = `inv_${generateRandomId()}_${Date.now()}`;
     const tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
 
-    // Create invitation
-    const { data: invitation, error: invitationError } = await supabase
-      .from('visit_invitations')
-      .insert({
-        resident_id: data.resident_id,
-        visitor_full_name: data.visitor_full_name,
-        visitor_email: data.visitor_email,
-        visitor_phone: data.visitor_phone_number,
-        visit_date: data.visit_date,
-        visit_purpose: data.visit_purpose || 'Social Visit',
-        visit_duration_hours: data.visit_duration_hours || 2,
-        invitation_token: invitationToken,
-        token_expires_at: tokenExpiresAt,
-        status: 'pending'
-      })
-      .select()
-      .single();
+    // TODO: Replace with actual FastAPI endpoint
+    // Create invitation - placeholder implementation
+    console.log('Creating invitation:', data);
+    await new Promise(resolve => setTimeout(resolve, 200)); // Simulate network delay
 
-    if (invitationError) {
-      console.error('Invitation creation failed:', invitationError);
-      return { success: false, error: invitationError.message };
-    }
+    // Simulate successful invitation creation
+    const invitation = {
+      id: generateRandomId(),
+      resident_id: data.resident_id,
+      visitor_full_name: data.visitor_full_name,
+      visitor_email: data.visitor_email,
+      visitor_phone: data.visitor_phone_number,
+      visit_date: data.visit_date,
+      visit_purpose: data.visit_purpose || 'Social Visit',
+      visit_duration_hours: data.visit_duration_hours || 2,
+      invitation_token: invitationToken,
+      token_expires_at: tokenExpiresAt,
+      status: 'pending'
+    };
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       invitationId: invitation.id,
       token: invitationToken
     };
   } catch (error) {
     console.error('Error creating invitation:', error);
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
     };
   }
@@ -109,26 +106,23 @@ export async function createInvitationDirect(data: InvitationData): Promise<{ su
  */
 export async function completeVisitorRegistrationDirect(data: VisitorRegistrationData): Promise<RegistrationResult> {
   try {
-    // 1. Find and validate invitation
-    const { data: invitation, error: invitationError } = await supabase
-      .from('visit_invitations')
-      .select('*')
-      .eq('invitation_token', data.invitationToken)
-      .eq('status', 'pending')
-      .single();
+    // TODO: Replace with actual FastAPI endpoint
+    // 1. Find and validate invitation - placeholder
+    console.log('Validating invitation token:', data.invitationToken);
+    await new Promise(resolve => setTimeout(resolve, 100)); // Simulate network delay
 
-    if (invitationError || !invitation) {
-      return { 
-        success: false, 
-        error: 'Invalid or expired invitation token' 
-      };
-    }
+    // Simulate invitation validation
+    const invitation = {
+      id: generateRandomId(),
+      resident_id: 'resident_123',
+      token_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    };
 
     // Check token expiration
     if (new Date(invitation.token_expires_at) < new Date()) {
-      return { 
-        success: false, 
-        error: 'Invitation token has expired' 
+      return {
+        success: false,
+        error: 'Invitation token has expired'
       };
     }
 
@@ -139,65 +133,43 @@ export async function completeVisitorRegistrationDirect(data: VisitorRegistratio
     const encryptedVisitorEmail = simpleEncrypt(data.visitorEmail);
     const idNumberHash = await hashSha256(data.idNumber);
 
-    // 3. Create visitor record
-    const { data: visitor, error: visitorError } = await supabase
-      .from('visitors')
-      .insert({
-        full_name_encrypted: encryptedFullName,
-        id_number_encrypted: encryptedIdNumber,
-        id_number_hash: idNumberHash,
-        phone_encrypted: encryptedPhoneNumber,
-        email_encrypted: encryptedVisitorEmail,
-        photo_url: data.photoUrl,
-        gdpr_consent: data.consent
-      })
-      .select()
-      .single();
+    // 3. Create visitor record - placeholder
+    console.log('Creating visitor record');
+    await new Promise(resolve => setTimeout(resolve, 150)); // Simulate network delay
 
-    if (visitorError) {
-      console.error('Visitor creation failed:', visitorError);
-      return { 
-        success: false, 
-        error: 'Failed to create visitor record' 
-      };
-    }
+    const visitor = {
+      id: generateRandomId(),
+      full_name_encrypted: encryptedFullName,
+      id_number_encrypted: encryptedIdNumber,
+      id_number_hash: idNumberHash,
+      phone_encrypted: encryptedPhoneNumber,
+      email_encrypted: encryptedVisitorEmail,
+      photo_url: data.photoUrl,
+      gdpr_consent: data.consent
+    };
 
-    // 4. Update invitation status
-    const { error: updateError } = await supabase
-      .from('visit_invitations')
-      .update({ status: 'accepted' })
-      .eq('id', invitation.id);
-
-    if (updateError) {
-      console.error('Invitation update failed:', updateError);
-      // Continue anyway - visitor is created
-    }
+    // 4. Update invitation status - placeholder
+    console.log('Updating invitation status');
+    await new Promise(resolve => setTimeout(resolve, 50)); // Simulate network delay
 
     // 5. Generate access code
     const pin = Math.floor(100000 + Math.random() * 900000).toString();
     const pin_hash = await hashSha256(pin);
     const qrToken = `qr_${visitor.id}_${Date.now()}`;
 
-    const { data: access_code, error: accessCodeError } = await supabase
-      .from('access_codes')
-      .insert({
-        visitor_id: visitor.id,
-        resident_id: invitation.resident_id,
-        invitation_id: invitation.id,
-        pin_hash,
-        qr_token: qrToken,
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-      })
-      .select()
-      .single();
+    // Create access code - placeholder
+    console.log('Creating access code');
+    await new Promise(resolve => setTimeout(resolve, 100)); // Simulate network delay
 
-    if (accessCodeError) {
-      console.error('Access code creation failed:', accessCodeError);
-      return { 
-        success: false, 
-        error: 'Failed to generate access code' 
-      };
-    }
+    const access_code = {
+      id: generateRandomId(),
+      visitor_id: visitor.id,
+      resident_id: invitation.resident_id,
+      invitation_id: invitation.id,
+      pin_hash,
+      qr_token: qrToken,
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    };
 
     return {
       success: true,
@@ -209,8 +181,8 @@ export async function completeVisitorRegistrationDirect(data: VisitorRegistratio
 
   } catch (error) {
     console.error('Error in visitor registration:', error);
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
     };
   }
@@ -221,24 +193,31 @@ export async function completeVisitorRegistrationDirect(data: VisitorRegistratio
  */
 export async function getVisitorDetails(accessCodeId: string): Promise<{ success: boolean; details?: any; error?: string }> {
   try {
-    const { data, error } = await supabase
-      .from('access_codes')
-      .select(`
-        *,
-        visitors!inner(*),
-        visit_invitations!inner(*)
-      `)
-      .eq('id', accessCodeId)
-      .single();
+    // TODO: Replace with actual FastAPI endpoint
+    console.log('Getting visitor details for access code:', accessCodeId);
+    await new Promise(resolve => setTimeout(resolve, 150)); // Simulate network delay
 
-    if (error) {
-      return { success: false, error: error.message };
-    }
+    // Placeholder data
+    const data = {
+      id: accessCodeId,
+      visitors: {
+        id: generateRandomId(),
+        full_name_encrypted: simpleEncrypt('John Doe'),
+        phone_encrypted: simpleEncrypt('+1234567890'),
+        email_encrypted: simpleEncrypt('john@example.com')
+      },
+      visit_invitations: {
+        id: generateRandomId(),
+        visitor_full_name: 'John Doe',
+        visit_date: new Date().toISOString(),
+        visit_purpose: 'Business Meeting'
+      }
+    };
 
     return { success: true, details: data };
   } catch (error) {
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
     };
   }

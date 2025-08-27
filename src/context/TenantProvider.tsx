@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { apiClient } from '@/integrations/supabase/client';
+import apiClient from '@/integrations/supabase/client';
 import { useAuthSession } from '@/hooks/useAuthSession';
 
 export type TenantMembership = {

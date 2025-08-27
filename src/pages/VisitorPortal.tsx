@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 import { 
   Users, 
   Shield, 
@@ -39,20 +39,16 @@ const VisitorPortal = () => {
 
     setIsLoading(true);
     try {
-      // Validate the token
-      const { data, error } = await supabase.functions.invoke("validate-invitation-token", {
-        body: { token: invitationToken },
-      });
-
-      if (error) throw error;
-
-      if (data.valid) {
+      // Validate the token using the new API
+      const response = await apiClient.validateInvitationToken(invitationToken);
+      
+      if (response.data?.valid) {
         // Redirect to registration with token
         window.location.href = `/visitor-registration?token=${invitationToken}`;
       } else {
         toast({
           title: "Invalid Token",
-          description: "The invitation token is invalid or has expired",
+          description: response.data?.message || "The invitation token is invalid or has expired",
           variant: "destructive",
         });
       }

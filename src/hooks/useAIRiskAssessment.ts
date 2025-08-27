@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import apiClient from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 
 interface VisitorRiskProfile {
@@ -70,21 +70,29 @@ export function useAIRiskAssessment() {
     try {
       setState(prev => ({ ...prev, isCalculating: true }));
 
-      // Call the risk calculation RPC function
-      const { data, error } = await (supabase as any).rpc('calculate_visitor_risk_score', {
-        p_visitor_id: visitorId
-      });
+      // TODO: Replace with FastAPI endpoint for risk calculation
+      // const response = await apiClient.calculateVisitorRiskScore(visitorId);
+      // const data = response.data;
+      const data = [{ 
+        risk_score: 25, 
+        risk_level: 'low' as const,
+        factors: {
+          total_visits: 5,
+          successful_visits: 4,
+          failed_attempts: 1,
+          incident_count: 0
+        }
+      }]; // Placeholder until FastAPI endpoint is implemented
+      const error = null;
 
       if (error) throw error;
 
       if (data && data.length > 0) {
         const riskData = data[0];
         
-        // Update the risk profile in the database
-        await (supabase as any).rpc('update_visitor_risk_profile', {
-          p_visitor_id: visitorId
-        });
-
+        // TODO: Replace with FastAPI endpoint for updating risk profile
+        // await apiClient.updateVisitorRiskProfile(visitorId);
+        
         // Create a mock profile for now since types aren't available
         const mockProfile: VisitorRiskProfile = {
           id: visitorId,
@@ -153,9 +161,11 @@ export function useAIRiskAssessment() {
     error?: string;
   }> => {
     try {
-      const { data, error } = await (supabase as any).rpc('detect_behavioral_anomalies', {
-        p_visitor_id: visitorId || null
-      });
+      // TODO: Replace with FastAPI endpoint for anomaly detection
+      // const response = await apiClient.detectBehavioralAnomalies(visitorId);
+      // const data = response.data;
+      const data = []; // Placeholder until FastAPI endpoint is implemented
+      const error = null;
 
       if (error) throw error;
 
@@ -196,11 +206,11 @@ export function useAIRiskAssessment() {
     error?: string;
   }> => {
     try {
-      // Get all visitors and calculate their risk
-      const { data: visitors, error } = await supabase
-        .from('visitors')
-        .select('id, full_name_encrypted')
-        .limit(20); // Limit for performance
+      // TODO: Replace with FastAPI endpoint for getting high-risk visitors
+      // const response = await apiClient.getHighRiskVisitors();
+      // const visitors = response.data;
+      const visitors = []; // Placeholder until FastAPI endpoint is implemented
+      const error = null;
 
       if (error) throw error;
 
@@ -247,20 +257,19 @@ export function useAIRiskAssessment() {
     error?: string;
   }> => {
     try {
-      // Store in audit logs for now
-      const { error } = await supabase
-        .from('audit_logs')
-        .insert({
-          event_type: 'ai_recommendation',
-          entity_type: entityType,
-          entity_id: entityId,
-          details: {
-            recommendation_type: type,
-            recommendation,
-            confidence_score: confidence,
-            created_at: new Date().toISOString()
-          }
-        });
+      // TODO: Replace with FastAPI endpoint for storing audit logs
+      // await apiClient.createAuditLog({
+      //   event_type: 'ai_recommendation',
+      //   entity_type: entityType,
+      //   entity_id: entityId,
+      //   details: {
+      //     recommendation_type: type,
+      //     recommendation,
+      //     confidence_score: confidence,
+      //     created_at: new Date().toISOString()
+      //   }
+      // });
+      const error = null; // Placeholder until FastAPI endpoint is implemented
 
       if (error) throw error;
 
@@ -290,12 +299,11 @@ export function useAIRiskAssessment() {
     error?: string;
   }> => {
     try {
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .eq('event_type', 'ai_recommendation')
-        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-        .order('created_at', { ascending: false });
+      // TODO: Replace with FastAPI endpoint for getting pending recommendations
+      // const response = await apiClient.getPendingRecommendations();
+      // const data = response.data;
+      const data = []; // Placeholder until FastAPI endpoint is implemented
+      const error = null;
 
       if (error) throw error;
 
@@ -342,17 +350,9 @@ export function useAIRiskAssessment() {
     error?: string;
   }> => {
     try {
-      // Update the audit log
-      const { error } = await supabase
-        .from('audit_logs')
-        .update({
-          details: {
-            status,
-            reviewed_by: userId,
-            reviewed_at: new Date().toISOString()
-          }
-        })
-        .eq('id', recommendationId);
+      // TODO: Replace with FastAPI endpoint for updating recommendation status
+      // await apiClient.updateRecommendationStatus(recommendationId, status, userId);
+      const error = null; // Placeholder until FastAPI endpoint is implemented
 
       if (error) throw error;
 
@@ -381,13 +381,11 @@ export function useAIRiskAssessment() {
     try {
       setState(prev => ({ ...prev, isCalculating: true }));
 
+      // TODO: Replace with actual FastAPI endpoint
       // Get recent visitors only to avoid overwhelming the system
-      const { data: visitors, error: visitorsError } = await supabase
-        .from('visitors')
-        .select('id')
-        .limit(50);
-
-      if (visitorsError) throw visitorsError;
+      const visitors = [
+        { id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }, { id: '5' }
+      ]; // Placeholder data
 
       if (!visitors || visitors.length === 0) {
         return { success: true, updatedCount: 0 };

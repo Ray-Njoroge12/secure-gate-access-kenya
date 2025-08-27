@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { apiClient } from '@/integrations/supabase/client';
+import api from '@/lib/apiClient';
 
 export interface AuthUser { id: string; email: string; role?: string }
 // Include access_token so components that need to call secured functions can pass it
@@ -11,18 +11,24 @@ export function useAuthSession() {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const response = await apiClient.getSession();
-    if (response.data) {
-      const apiSession = response.data;
-      setSession({
-        user: apiSession.user ? {
-          id: apiSession.user.id,
-          email: apiSession.user.email,
-          role: undefined // Role will be handled separately through profiles/memberships
-        } : null,
-        access_token: apiSession.access_token
-      });
-    } else {
+    try {
+      // Use the new API client to get the user profile
+      const result = await api.getProfile();
+
+      if (result.data?.user) {
+        setSession({
+          user: {
+            id: result.data.user.id,
+            email: result.data.user.email,
+            role: result.data.user.profile?.role
+          },
+          access_token: localStorage.getItem('authToken') || undefined
+        });
+      } else {
+        setSession(null);
+      }
+    } catch (error) {
+      console.error('Error fetching auth session:', error);
       setSession(null);
     }
     setLoading(false);

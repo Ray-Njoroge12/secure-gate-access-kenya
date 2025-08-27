@@ -31,7 +31,7 @@ import {
   Pie,
   Cell
 } from "recharts";
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuthSession } from "@/hooks/useAuthSession";
@@ -114,8 +114,8 @@ const Analytics = () => {
       try {
         if (authLoading) return; // wait for auth
         if (!session?.user) { navigate('/'); return; }
-        const { data: profiles } = await supabase.from('profiles').select();
-        const profile = (profiles || []).find((p: any) => p.id === session.user.id || p.user_id === session.user.id) || null;
+        const profileResponse = await apiClient.getProfile();
+        const profile = profileResponse.data?.user;
         if (!profile) {
           toast({ title: 'Access Denied', description: 'Unable to verify your credentials', variant: 'destructive' });
           navigate('/');
@@ -187,37 +187,21 @@ const Analytics = () => {
   const loadSummaryStats = async (fromDate: string, toDate: string) => {
     try {
       // Get invitation count
-      const { data: invitations, error: invError } = await supabase
-        .from('visit_invitations')
-        .select('id, created_at, status')
-        .gte('created_at', `${fromDate}T00:00:00.000Z`)
-        .lte('created_at', `${toDate}T23:59:59.999Z`);
-
-      if (invError) throw invError;
+      const invitationsResponse = await apiClient.getInvitationsAnalytics();
+      const invitations = invitationsResponse.data || [];
 
       // Get visitor count
-      const { data: visitors, error: visitorError } = await supabase
-        .from('visitors')
-        .select('id, created_at')
-        .gte('created_at', `${fromDate}T00:00:00.000Z`)
-        .lte('created_at', `${toDate}T23:59:59.999Z`);
-
-      if (visitorError) throw visitorError;
+      const visitorsResponse = await apiClient.getVisitorsAnalytics(fromDate);
+      const visitors = visitorsResponse.data || [];
 
       // Get access codes used
-      const { data: accessCodes, error: accessError } = await supabase
-        .from('access_codes')
-        .select('id, used_at')
-        .not('used_at', 'is', null)
-        .gte('used_at', `${fromDate}T00:00:00.000Z`)
-        .lte('used_at', `${toDate}T23:59:59.999Z`);
-
-      if (accessError) throw accessError;
+      const accessCodesResponse = await apiClient.getAccessCodesAnalytics(fromDate);
+      const accessCodes = accessCodesResponse.data || [];
 
       setSummaryStats({
-        totalVisitors: visitors?.length || 0,
-        totalInvitations: invitations?.length || 0,
-        accessGranted: accessCodes?.length || 0,
+        totalVisitors: visitors.length,
+        totalInvitations: invitations.length,
+        accessGranted: accessCodes.length,
         averageProcessingTime: 2.5, // Mock data - would calculate from actual timestamps
         securityIncidents: 0 // Would come from incidents table
       });
@@ -230,32 +214,16 @@ const Analytics = () => {
   const loadDetailedAnalytics = async (fromDate: string, toDate: string) => {
     try {
       // Get daily visitor data
-      const { data: visitors, error: visitorError } = await supabase
-        .from('visitors')
-        .select('created_at')
-        .gte('created_at', `${fromDate}T00:00:00.000Z`)
-        .lte('created_at', `${toDate}T23:59:59.999Z`);
-
-      if (visitorError) throw visitorError;
+      const visitorsResponse = await apiClient.getVisitorsAnalytics(fromDate);
+      const visitors = visitorsResponse.data || [];
 
       // Get daily access grants
-      const { data: accessCodes, error: accessError } = await supabase
-        .from('access_codes')
-        .select('used_at')
-        .not('used_at', 'is', null)
-        .gte('used_at', `${fromDate}T00:00:00.000Z`)
-        .lte('used_at', `${toDate}T23:59:59.999Z`);
-
-      if (accessError) throw accessError;
+      const accessCodesResponse = await apiClient.getAccessCodesAnalytics(fromDate);
+      const accessCodes = accessCodesResponse.data || [];
 
       // Get invitation statuses
-      const { data: invitations, error: invError } = await supabase
-        .from('visit_invitations')
-        .select('status, visit_purpose')
-        .gte('created_at', `${fromDate}T00:00:00.000Z`)
-        .lte('created_at', `${toDate}T23:59:59.999Z`);
-
-      if (invError) throw invError;
+      const invitationsResponse = await apiClient.getInvitationsAnalytics();
+      const invitations = invitationsResponse.data || [];
 
       // Process daily visitors data
       const dailyData: { [key: string]: { visitors: number; entries: number } } = {};

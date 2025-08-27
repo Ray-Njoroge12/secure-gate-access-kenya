@@ -8,13 +8,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Users, Shield, BarChart3, Settings, Key, Trash2, Database as DatabaseIcon, Download, Upload, Bell, CheckCircle, XCircle, Clock, Activity, Server, Network, Brain, FileBarChart, TrendingUp } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useToast } from "@/hooks/use-toast";
 import { SharedNavigation } from "@/components/SharedNavigation";
-import type { Database } from "@/integrations/supabase/types";
 
-type Profile = Database['public']['Tables']['profiles']['Row'];
+// Define local types to replace Supabase types
+interface Profile {
+  id: string;
+  email: string;
+  full_name: string;
+  unit_number: string | null;
+  phone: string | null;
+  role: 'admin' | 'guard' | 'resident';
+  created_at: string;
+  updated_at: string;
+}
 
 interface AdminStats {
   totalUsers: number;
@@ -63,40 +72,22 @@ const AdminDashboard = () => {
       try {
         if (authLoading) return;
         if (session?.user) {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          if (!profileError && profile) {
-            setUserProfile(profile);
+          // Use the new API client to get user profile
+          const result = await apiClient.getProfile();
+          if (result.data?.user) {
+            setUserProfile(result.data.user);
           }
         }
 
-        // Fetch admin statistics
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('role');
-
-        const { data: invitations } = await supabase
-          .from('visit_invitations')
-          .select('status');
-
-        const totalUsers = profiles?.length || 0;
-        const profilesData = profiles || [];
-        const totalResidents = profilesData.filter((p: Profile) => p.role === 'resident').length || 0;
-        const totalGuards = profilesData.filter((p: Profile) => p.role === 'guard').length || 0;
-        const totalAdmins = profilesData.filter((p: Profile) => p.role === 'admin').length || 0;
-        const activeInvitations = invitations?.filter(inv => inv.status === 'accepted').length || 0;
-        const pendingInvitations = invitations?.filter(inv => inv.status === 'pending').length || 0;
-
+        // TODO: Replace with admin statistics API endpoint
+        // For now, we'll use placeholder data until the backend endpoint is implemented
         setStats({
-          totalUsers,
-          totalResidents,
-          totalGuards,
-          totalAdmins,
-          activeInvitations,
-          pendingInvitations,
+          totalUsers: 0,
+          totalResidents: 0,
+          totalGuards: 0,
+          totalAdmins: 0,
+          activeInvitations: 0,
+          pendingInvitations: 0,
           systemAlerts: Math.floor(Math.random() * 5),
           databaseSize: '2.4 GB',
         });
@@ -142,22 +133,23 @@ const AdminDashboard = () => {
   const handleTestDatabase = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("visit_invitations")
-        .select("*")
-        .limit(5);
+      // TODO: Replace with actual database test endpoint
+      // For now, we'll test the API connection by calling the profile endpoint
+      const result = await apiClient.getProfile();
 
-      if (error) throw error;
+      if (result.error) {
+        throw new Error(result.error);
+      }
 
       toast({
-        title: "Database Connection",
-        description: `Successfully connected! Found ${data?.length || 0} invitations.`,
+        title: "API Connection",
+        description: "Successfully connected to backend API!",
       });
     } catch (error) {
-      console.error("Database test error:", error);
+      console.error("API test error:", error);
       toast({
-        title: "Database Error",
-        description: "Failed to connect to database",
+        title: "API Error",
+        description: "Failed to connect to backend API",
         variant: "destructive",
       });
     } finally {
@@ -197,13 +189,11 @@ const AdminDashboard = () => {
 
   const handleCleanOldInvitations = async () => {
     try {
-      const { error } = await supabase.functions.invoke("clean-old-invitations");
-
-      if (error) throw error;
-
+      // TODO: Replace with actual clean invitations endpoint
+      // For now, we'll show a placeholder message
       toast({
-        title: "Success",
-        description: "Old invitations cleaned successfully.",
+        title: "Feature Coming Soon",
+        description: "Clean old invitations feature will be available with the new API.",
       });
     } catch (error) {
       toast({

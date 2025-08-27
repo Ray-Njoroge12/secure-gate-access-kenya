@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     INTERNAL_API_KEY: str | None = None
 
     DATABASE_URL: str | None = None
+    JWT_SECRET: str = Field(
+        default="your-secret-key-change-in-production",
+        description="Secret key for JWT token signing"
+    )
 
 
 

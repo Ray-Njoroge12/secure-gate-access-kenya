@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, Users, QrCode, Clock, Shield, Activity, CheckCircle, XCircle, Search, FileText, Camera, RefreshCw, Wifi, WifiOff, RotateCcw, HardDrive } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthSession } from "@/hooks/useAuthSession";
@@ -88,8 +88,8 @@ const SecurityGuardInterface = () => {
       try {
         if (authLoading) return;
         if (!session?.user) { navigate('/'); return; }
-        const { data: profiles } = await supabase.from('profiles').select();
-        const profile = (profiles || []).find((p: any) => p.id === session.user.id || p.user_id === session.user.id) || null;
+        const profileResponse = await apiClient.getProfile();
+        const profile = profileResponse.data?.user;
         if (!profile) {
           toast({ title: 'Access Denied', description: 'Unable to verify your security credentials', variant: 'destructive' });
           navigate('/');
@@ -124,20 +124,25 @@ const SecurityGuardInterface = () => {
 
   const loadRecentActivity = async () => {
     try {
-      // Get recent access attempts from access_codes table
-      const { data, error } = await supabase
-        .from('access_codes')
-        .select(`
-          id,
-          used_at,
-          created_at,
-          visitors(*),
-          visit_invitations(visitor_full_name)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(10);
+      // TODO: Replace with FastAPI endpoint for recent access activity
+      // For now, return empty array until backend endpoint is implemented
+      setRecentActivity([]);
+      return;
 
-      if (error) throw error;
+      // Original Supabase code (commented out):
+      // const { data, error } = await supabase
+      //   .from('access_codes')
+      //   .select(`
+      //     id,
+      //     used_at,
+      //     created_at,
+      //     visitors(*),
+      //     visit_invitations(visitor_full_name)
+      //   `)
+      //   .order('created_at', { ascending: false })
+      //   .limit(10);
+
+      // if (error) throw error;
 
       const activity = data?.map((item, index) => ({
         id: item.id,

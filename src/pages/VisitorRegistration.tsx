@@ -13,8 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { completeVisitorRegistrationDirect } from "@/lib/visitor-flow-direct";
+// import { supabase } from "@/integrations/supabase/client"; // TODO: Remove supabase dependency
+import { apiClient } from "@/lib/apiClient";
 import { User, IdCard, Phone, CheckCircle, Copy, QrCode } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { QRCodeGenerator } from "@/components/QRCodeGenerator";
@@ -43,7 +43,8 @@ export function VisitorRegistration() {
   useEffect(() => {
     const token = new URLSearchParams(location.search).get("token");
     if (token) {
-      setInvitationToken(token);
+      // Validate the invitation token
+      validateInvitationToken(token);
     } else {
       toast({
         title: "Error",
@@ -54,6 +55,41 @@ export function VisitorRegistration() {
       setTimeout(() => navigate("/"), 3000);
     }
   }, [location, toast, navigate]);
+
+  const validateInvitationToken = async (token: string) => {
+    try {
+      const result = await apiClient.validateInvitationToken(token);
+      if (result.data?.valid && result.data.invitation) {
+        setInvitationToken(token);
+        // Pre-fill form with invitation data
+        const invitation = result.data.invitation;
+        setFormData(prev => ({
+          ...prev,
+          fullName: invitation.visitor_full_name,
+          visitorEmail: invitation.visitor_email,
+          phoneNumber: invitation.visitor_phone_number,
+        }));
+        toast({
+          title: "Invitation Valid",
+          description: `Welcome ${invitation.visitor_full_name}! Please complete your registration.`,
+        });
+      } else {
+        toast({
+          title: "Invalid Token",
+          description: result.data?.error || "The invitation token is invalid or expired.",
+          variant: "destructive",
+        });
+        setTimeout(() => navigate("/"), 3000);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to validate invitation token.",
+        variant: "destructive",
+      });
+      setTimeout(() => navigate("/"), 3000);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,41 +116,33 @@ export function VisitorRegistration() {
     try {
       let photoUrl = null;
       if (formData.photo) {
-        const fileExtension = formData.photo.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExtension}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('visitor-photos')
-          .upload(fileName, formData.photo, {
-            cacheControl: '3600',
-            upsert: false,
-          });
-
-        if (uploadError) {
-          throw uploadError;
-        }
-        photoUrl = supabase.storage.from('visitor-photos').getPublicUrl(uploadData.path).data.publicUrl;
+        // TODO: Replace with actual FastAPI file upload endpoint
+        // For now, simulate photo upload
+        console.log('Uploading photo:', formData.photo.name);
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate upload delay
+        photoUrl = `https://example.com/photos/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.jpg`; // Placeholder URL
       }
 
-      // Use direct database approach
-      const result = await completeVisitorRegistrationDirect({
-        fullName: formData.fullName,
-        idNumber: formData.idNumber,
-        phoneNumber: formData.phoneNumber,
-        visitorEmail: formData.visitorEmail,
+      // Use the new FastAPI endpoint for invitation-based registration
+      const result = await apiClient.registerVisitorWithInvitation({
+        invitation_token: invitationToken!,
+        full_name: formData.fullName,
+        id_number: formData.idNumber,
+        phone_number: formData.phoneNumber,
+        visitor_email: formData.visitorEmail,
         consent: formData.consent,
-        photoUrl: photoUrl || undefined,
-        invitationToken: invitationToken,
+        photo_url: photoUrl || undefined,
       });
 
-      if (!result.success) {
-        throw new Error(result.error || "Registration failed");
+      if (result.error) {
+        throw new Error(result.error);
       }
 
       setRegistrationSuccess({
-        visitorId: result.visitorId!,
-        accessCodeId: result.accessCodeId!,
-        pin: result.pin!,
-        qrToken: result.qrToken!,
+        visitorId: result.data!.visitor.id,
+        accessCodeId: result.data!.access_code.id,
+        pin: result.data!.access_code.pin,
+        qrToken: result.data!.access_code.qr_token,
       });
 
       toast({

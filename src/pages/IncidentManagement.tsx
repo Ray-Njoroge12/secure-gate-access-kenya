@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/apiClient";
 import { useNavigate } from "react-router-dom";
 import { useAuthSession } from "@/hooks/useAuthSession";
 
@@ -144,8 +144,8 @@ const IncidentManagement = () => {
         if (authLoading) return; // wait for auth
         if (!session?.user) { navigate('/'); return; }
 
-        const { data: profiles } = await supabase.from('profiles').select();
-        const profile = (profiles || []).find((p: any) => p.id === session.user.id || p.user_id === session.user.id) || null;
+        const profileResponse = await apiClient.getProfile();
+        const profile = profileResponse.data?.user;
         if (!profile) {
           toast({ title: 'Access Denied', description: 'Unable to verify your credentials', variant: 'destructive' });
           navigate('/');

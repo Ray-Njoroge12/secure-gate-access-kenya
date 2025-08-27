@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 
 interface OfflineAccessCode {
@@ -65,14 +65,10 @@ export function useOfflineAccessCache() {
   // Populate offline cache with recent access codes
   const populateCache = useCallback(async () => {
     try {
-      const { data: accessCodes, error } = await supabase
-        .from('access_codes')
-        .select('qr_token, pin_hash, expires_at, visitor_id, resident_id')
-        .gt('expires_at', new Date().toISOString())
-        .is('used_at', null)
-        .limit(100);
-
-      if (error) throw error;
+      // TODO: Replace with FastAPI endpoint for getting active access codes
+      // const response = await apiClient.getActiveAccessCodes();
+      // const accessCodes = response.data;
+      const accessCodes = []; // Placeholder
 
       const cacheData = {
         codes: accessCodes || [],
@@ -117,42 +113,40 @@ export function useOfflineAccessCache() {
     try {
       if (state.isOnline) {
         // Try online verification first
-        const searchField = method === 'qr' ? 'qr_token' : 'pin_hash';
-        const { data, error } = await supabase
-          .from('access_codes')
-          .select('*, visit_invitations!inner(*)')
-          .eq(searchField, accessCode)
-          .single();
+        try {
+          // TODO: Replace with FastAPI endpoint for verifying access code
+          // const response = await apiClient.verifyAccessCode(accessCode, method, guardId);
+          // const data = response.data;
+          const data = null; // Placeholder
 
-        if (!error && data && new Date(data.expires_at) > new Date() && !data.used_at) {
-          // Mark as used
-          await supabase
-            .from('access_codes')
-            .update({ used_at: new Date().toISOString() })
-            .eq('id', data.id);
+          if (data && new Date(data.expires_at) > new Date() && !data.used_at) {
+            // TODO: Replace with FastAPI endpoint for marking access code as used
+            // await apiClient.markAccessCodeUsed(data.id);
 
-          // Log to audit logs
-          await supabase
-            .from('audit_logs')
-            .insert({
-              user_id: guardId,
-              event_type: 'access_granted',
-              entity_type: 'access_code',
-              entity_id: data.id,
-              details: {
-                method: 'online',
-                verification_method: method,
-                visitor_id: data.visitor_id
-              }
-            });
+            // TODO: Replace with FastAPI endpoint for logging audit
+            // await apiClient.logAuditEvent({
+            //   user_id: guardId,
+            //   event_type: 'access_granted',
+            //   entity_type: 'access_code',
+            //   entity_id: data.id,
+            //   details: {
+            //     method: 'online',
+            //     verification_method: method,
+            //     visitor_id: data.visitor_id
+            //   }
+            // });
 
-          return {
-            success: true,
-            visitor_name: 'Visitor',
-            resident_id: data.resident_id,
-            expires_at: data.expires_at,
-            message: 'Access granted (online verification)'
-          };
+            return {
+              success: true,
+              visitor_name: 'Visitor',
+              resident_id: data.resident_id,
+              expires_at: data.expires_at,
+              message: 'Access granted (online verification)'
+            };
+          }
+        } catch (error) {
+          console.error('Online verification failed:', error);
+          // Fall through to offline verification
         }
       }
 
@@ -228,20 +222,18 @@ export function useOfflineAccessCache() {
 
       for (const pending of pendingData) {
         try {
-          // Log to audit logs
-          await supabase
-            .from('audit_logs')
-            .insert({
-              user_id: pending.guard_id,
-              event_type: 'access_granted',
-              entity_type: 'access_code',
-              details: {
-                method: 'offline_sync',
-                verification_method: pending.method,
-                visitor_id: pending.visitor_id,
-                offline_timestamp: pending.timestamp
-              }
-            });
+          // TODO: Replace with FastAPI endpoint for logging audit event
+          // await apiClient.logAuditEvent({
+          //   user_id: pending.guard_id,
+          //   event_type: 'access_granted',
+          //   entity_type: 'access_code',
+          //   details: {
+          //     method: 'offline_sync',
+          //     verification_method: pending.method,
+          //     visitor_id: pending.visitor_id,
+          //     offline_timestamp: pending.timestamp
+          //   }
+          // });
 
           syncedCount++;
         } catch (error) {
