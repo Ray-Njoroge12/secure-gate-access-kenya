@@ -1,0 +1,104 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Secure Gate Application Metrics",
+    "tags": ["secure-gate", "application"],
+    "timezone": "UTC",
+    "panels": [
+      {
+        "id": 1,
+        "title": "HTTP Requests per Second",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "Requests/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "HTTP Request Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Active Connections",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "active_connections",
+            "legendFormat": "Active connections"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Visitor Registrations",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(visitor_registrations_total[5m])",
+            "legendFormat": "Registrations/min"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqpm"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Access Code Verifications",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "rate(access_code_verifications_total{result=\"success\"}[5m])",
+            "legendFormat": "Success"
+          },
+          {
+            "expr": "rate(access_code_verifications_total{result!=\"success\"}[5m])",
+            "legendFormat": "Failed"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "HTTP Status Codes",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[5m])) by (status)",
+            "legendFormat": "{{status}}"
+          }
+        ]
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s"
+  }
+}

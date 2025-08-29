@@ -1,0 +1,79 @@
+{
+  "test_summary": {
+    "total_tests": 10,
+    "passed_tests": 8,
+    "failed_tests": 2,
+    "success_rate": "80.0%"
+  },
+  "system_status": "REQUIRES ATTENTION",
+  "tested_endpoints": {
+    "backend_health": "http://127.0.0.1:8000/healthz",
+    "api_docs": "http://127.0.0.1:8000/docs",
+    "visitor_registration": "http://127.0.0.1:8000/api/visitors/register",
+    "access_verification": "http://127.0.0.1:8000/api/access-codes/verify",
+    "metrics": "http://127.0.0.1:8000/metrics",
+    "frontend": "http://127.0.0.1:3000"
+  },
+  "timestamp": "2025-08-28T16:04:13.031714",
+  "system_tests": {
+    "backend_health": {
+      "result": "PASS",
+      "details": "Status: 200, Response: {'ok': True, 'env': 'development'}",
+      "timestamp": "2025-08-28T16:04:13.062515"
+    }
+  },
+  "api_tests": {
+    "api_documentation": {
+      "result": "PASS",
+      "details": "API docs accessible, content length: 943",
+      "timestamp": "2025-08-28T16:04:13.069249"
+    },
+    "visitor_registration": {
+      "result": "PASS",
+      "details": "Visitor registered with ID: f7aa8940-65f3-4472-83a9-41027b275ae1",
+      "timestamp": "2025-08-28T16:04:13.203851"
+    },
+    "access_code_verification": {
+      "result": "PASS",
+      "details": "Verification response: invalid_pin",
+      "timestamp": "2025-08-28T16:04:13.479849"
+    },
+    "metrics_endpoint": {
+      "result": "PASS",
+      "details": "Metrics data length: 24290 bytes",
+      "timestamp": "2025-08-28T16:04:13.494511"
+    }
+  },
+  "frontend_tests": {
+    "frontend_accessibility": {
+      "result": "FAIL",
+      "details": "HTTPConnectionPool(host='127.0.0.1', port=3000): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001856D028CB0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+      "timestamp": "2025-08-28T16:04:15.522322"
+    }
+  },
+  "integration_tests": {
+    "database_connectivity": {
+      "result": "PASS",
+      "details": "Database connection confirmed - visitor created with ID: 2da227e1-cfab-48d3-88db-c2c0b7b4b3b4",
+      "timestamp": "2025-08-28T16:04:17.726385"
+    }
+  },
+  "performance_tests": {},
+  "security_tests": {
+    "security_headers_healthz": {
+      "result": "PASS",
+      "details": "All security headers present",
+      "timestamp": "2025-08-28T16:04:15.543445"
+    },
+    "security_headers_docs": {
+      "result": "PASS",
+      "details": "All security headers present",
+      "timestamp": "2025-08-28T16:04:15.549600"
+    },
+    "security_headers_127.0.0.1:3000": {
+      "result": "FAIL",
+      "details": "HTTPConnectionPool(host='127.0.0.1', port=3000): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001856D02C5A0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+      "timestamp": "2025-08-28T16:04:17.589969"
+    }
+  }
+}

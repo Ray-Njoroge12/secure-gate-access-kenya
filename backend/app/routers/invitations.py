@@ -114,7 +114,13 @@ def validate_invitation_token(
         )
 
     # Check if token has expired
-    if invitation.token_expires_at < datetime.now(UTC):
+    # Ensure both datetimes are timezone-aware for comparison
+    token_expires_at = invitation.token_expires_at
+    if token_expires_at.tzinfo is None:
+        # If stored as naive, assume UTC
+        from datetime import timezone
+        token_expires_at = token_expires_at.replace(tzinfo=timezone.utc)
+    if token_expires_at < datetime.now(UTC):
         return ValidateInvitationTokenResponse(
             valid=False,
             invitation=None,
@@ -205,5 +211,4 @@ def get_invitation(
         token_expires_at=invitation.token_expires_at,
         status=invitation.status,
         created_at=invitation.created_at
-    )</content>
-<parameter name="filePath">c:\Users\rayng\Desktop\secure-gate-access-kenya\backend\app\routers\invitations.py
+    )

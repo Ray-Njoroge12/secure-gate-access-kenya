@@ -28,6 +28,7 @@ export const BusinessIntelligence = lazy(() => import('../pages/BusinessIntellig
 export const AdvancedAnalytics = lazy(() => import('../pages/AdvancedAnalytics').then(module => ({ default: module.AdvancedAnalytics })));
 export const AdvancedAnalyticsDashboard = lazy(() => import('../pages/AdvancedAnalyticsDashboard'));
 export const PredictiveAnalyticsEngine = lazy(() => import('../pages/PredictiveAnalyticsEngine'));
+export const ComprehensiveAnalytics = lazy(() => import('../pages/ComprehensiveAnalytics'));
 
 // Create wrapped components with specific loading types
 export const AnalyticsWithLoading = (props: any) => (

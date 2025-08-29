@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Users, QrCode, Clock, Shield, Activity, CheckCircle, XCircle, Search, FileText, Camera, Copy, RefreshCw } from "lucide-react";
-// import { supabase } from "@/integrations/supabase/client"; // TODO: Remove supabase dependency
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { SharedNavigation } from "@/components/SharedNavigation";
 import { useNavigate } from "react-router-dom";
@@ -176,10 +175,7 @@ const SecurityGuardInterface = () => {
     setIsLoading(true);
     try {
       // Use real FastAPI endpoint for access verification
-      const result = await apiClient.verifyAccessCode({
-        code: code.trim(),
-        method: method
-      });
+      const result = await apiClient.verifyAccessCode(code.trim(), method);
 
       if (result.error) {
         throw new Error(result.error);

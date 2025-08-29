@@ -48,18 +48,27 @@ class ApiClient {
     }
   }
 
-  // Auth methods
-  async login(email: string, password: string) {
-    const result = await this.request<{ token: string; user: any }>('/api/auth/login', {
+  // Generic HTTP methods
+  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'GET' });
+  }
+
+  async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: data ? JSON.stringify(data) : undefined,
     });
-    
-    if (result.data?.token) {
-      localStorage.setItem('authToken', result.data.token);
-    }
-    
-    return result;
+  }
+
+  async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'DELETE' });
   }
 
   async signup(email: string, password: string, fullName: string, unitNumber?: string, phone?: string) {

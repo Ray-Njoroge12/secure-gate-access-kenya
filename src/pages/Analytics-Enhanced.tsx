@@ -35,7 +35,6 @@ import apiClient from "@/lib/apiClient";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuthSession } from "@/hooks/useAuthSession";
-// import { supabase } from "@/integrations/supabase/client"; // TODO: Remove supabase dependency
 
 interface Profile { id?: string; user_id?: string; email?: string; role?: string; }
 

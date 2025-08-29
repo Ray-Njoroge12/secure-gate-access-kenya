@@ -155,7 +155,13 @@ async def verify_access_code(
             )
 
         # Check if code is expired
-        if code.expires_at < datetime.now(UTC):
+        # Ensure both datetimes are timezone-aware for comparison
+        expires_at = code.expires_at
+        if expires_at.tzinfo is None:
+            # If stored as naive, assume UTC
+            from datetime import timezone
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < datetime.now(UTC):
             return AccessVerificationResponse(
                 success=True,
                 valid=False,
