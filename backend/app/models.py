@@ -175,3 +175,159 @@ class DashboardConfig(Base):
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+
+
+# Phase 3: Security Guard Enhancement Models
+
+class AuditLog(Base):
+    """Comprehensive audit logging for security compliance"""
+    __tablename__ = "audit_logs"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    event_type: Mapped[str] = mapped_column(String(50), index=True)
+    severity: Mapped[str] = mapped_column(String(20), index=True)
+    user_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    action: Mapped[str] = mapped_column(String(500))
+    resource_type: Mapped[str] = mapped_column(String(50), index=True)
+    resource_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    details: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    success: Mapped[bool] = mapped_column(Boolean, default=True)
+    error_message: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+
+    __table_args__ = (
+        Index('ix_audit_logs_event_created', 'event_type', 'created_at'),
+        Index('ix_audit_logs_user_created', 'user_id', 'created_at'),
+        Index('ix_audit_logs_resource_created', 'resource_type', 'resource_id', 'created_at'),
+        Index('ix_audit_logs_created_at', 'created_at'),
+    )
+
+
+class OfflineSync(Base):
+    """Tracks offline data synchronization"""
+    __tablename__ = "offline_sync"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    device_id: Mapped[str] = mapped_column(String(255), index=True)
+    table_name: Mapped[str] = mapped_column(String(50), index=True)
+    operation: Mapped[str] = mapped_column(String(20))  # create, update, delete
+    data: Mapped[str] = mapped_column(String(5000))  # JSON data
+    checksum: Mapped[str] = mapped_column(String(64))  # Data integrity check
+    status: Mapped[str] = mapped_column(String(20), default="pending", index=True)  # pending, syncing, completed, failed
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    error_message: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index('ix_offline_sync_device_status', 'device_id', 'status'),
+        Index('ix_offline_sync_table_status', 'table_name', 'status'),
+        Index('ix_offline_sync_status_created', 'status', 'created_at'),
+    )
+
+
+class SecurityIncident(Base):
+    """Security incident tracking and management"""
+    __tablename__ = "security_incidents"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    incident_type: Mapped[str] = mapped_column(String(50), index=True)
+    severity: Mapped[str] = mapped_column(String(20), index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str] = mapped_column(String(1000))
+    location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    reported_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    reported_by_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="reported", index=True)  # reported, investigating, escalated, resolved, closed
+    assigned_to: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    priority: Mapped[int] = mapped_column(Integer, default=1)  # 1-5, higher is more urgent
+    details: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)  # JSON details
+    evidence_urls: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)  # JSON array of URLs
+    resolution: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    resolved_by: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    estimated_resolution_time: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+
+    __table_args__ = (
+        Index('ix_security_incidents_status_created', 'status', 'created_at'),
+        Index('ix_security_incidents_type_severity', 'incident_type', 'severity'),
+        Index('ix_security_incidents_assigned_priority', 'assigned_to', 'priority'),
+        Index('ix_security_incidents_reported_created', 'reported_by', 'created_at'),
+    )
+
+
+class IncidentEvidence(Base):
+    """Evidence files attached to security incidents"""
+    __tablename__ = "incident_evidence"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    incident_id: Mapped[int] = mapped_column(ForeignKey("security_incidents.id", ondelete="CASCADE"), index=True)
+    evidence_type: Mapped[str] = mapped_column(String(50))  # photo, video, document, audio
+    file_name: Mapped[str] = mapped_column(String(255))
+    file_url: Mapped[str] = mapped_column(String(500))
+    description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    uploaded_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    metadata: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)  # JSON metadata
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+
+    __table_args__ = (
+        Index('ix_incident_evidence_incident_uploaded', 'incident_id', 'uploaded_at'),
+        Index('ix_incident_evidence_type_uploaded', 'evidence_type', 'uploaded_at'),
+    )
+
+
+class NotificationLog(Base):
+    """Notification delivery tracking"""
+    __tablename__ = "notification_logs"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    type: Mapped[str] = mapped_column(String(20), index=True)  # alert, incident, system, security
+    priority: Mapped[str] = mapped_column(String(10), index=True)  # low, medium, high, urgent
+    title: Mapped[str] = mapped_column(String(255))
+    message: Mapped[str] = mapped_column(String(1000))
+    recipient_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    recipient_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    channels: Mapped[str] = mapped_column(String(200))  # JSON array of channels
+    data: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)  # JSON additional data
+    scheduled_for: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending", index=True)  # pending, sent, failed, read
+    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    read_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+
+    __table_args__ = (
+        Index('ix_notification_logs_recipient_status', 'recipient_id', 'status'),
+        Index('ix_notification_logs_type_created', 'type', 'created_at'),
+        Index('ix_notification_logs_status_created', 'status', 'created_at'),
+        Index('ix_notification_logs_scheduled', 'scheduled_for'),
+    )
+
+
+class VisitorLog(Base):
+    """Enhanced visitor tracking with check-in/check-out"""
+    __tablename__ = "visitor_logs"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    visitor_name: Mapped[str] = mapped_column(String(255), index=True)
+    visitor_phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    visitor_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    expected_arrival: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    purpose: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    host_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    host_phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    invitation_id: Mapped[Optional[int]] = mapped_column(ForeignKey("invitations.id", ondelete="SET NULL"), nullable=True, index=True)
+    access_code: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    check_in_time: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    check_out_time: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending", index=True)  # pending, arrived, checked_in, checked_out, denied
+    notes: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+
+    __table_args__ = (
+        Index('ix_visitor_logs_status_arrival', 'status', 'expected_arrival'),
+        Index('ix_visitor_logs_phone_status', 'visitor_phone', 'status'),
+        Index('ix_visitor_logs_checkin_status', 'check_in_time', 'status'),
+        Index('ix_visitor_logs_invitation_status', 'invitation_id', 'status'),
+    )

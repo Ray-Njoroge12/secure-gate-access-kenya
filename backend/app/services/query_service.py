@@ -8,7 +8,7 @@ from sqlalchemy import text, select, func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
-from ..database import get_db
+from ..database import get_session
 from .cache_service import get_cache_service
 
 logger = logging.getLogger(__name__)
