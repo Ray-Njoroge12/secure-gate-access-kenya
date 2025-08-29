@@ -1,24 +1,26 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Activity, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
-  Eye, 
-  RefreshCw, 
-  Shield, 
-  Wifi, 
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Eye,
+  RefreshCw,
+  Shield,
+  Wifi,
   WifiOff,
   Bell,
   MapPin,
   Camera,
   Users,
   AlertCircle,
-  TrendingUp
+  TrendingUp,
+  X,
+  Check
 } from 'lucide-react';
 import apiClient from "@/lib/apiClient";
 import { useAuthSession } from "@/hooks/useAuthSession";
@@ -26,510 +28,534 @@ import { useToast } from "@/hooks/use-toast";
 
 interface RealTimeAlert {
   id: string;
-  type: 'security' | 'access' | 'system' | 'incident';
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  type: string;
+  severity: string;
   title: string;
   message: string;
   timestamp: string;
-  acknowledged: boolean;
-  location?: string;
-  source?: string;
-  metadata?: Record<string, any>;
+  data?: Record<string, any>;
 }
 
-interface SystemHealth {
-  database: 'healthy' | 'degraded' | 'offline';
-  authentication: 'healthy' | 'degraded' | 'offline';
-  notifications: 'healthy' | 'degraded' | 'offline';
-  camera_systems: 'healthy' | 'degraded' | 'offline';
-  last_check: string;
-  response_time: number;
+interface LiveStats {
+  active_visitors: number;
+  pending_verifications: number;
+  today_entries: number;
+  active_alerts: number;
+  system_health: string;
+  last_update: string;
 }
 
 interface LiveActivity {
   id: string;
-  type: 'access_granted' | 'access_denied' | 'visitor_entry' | 'incident_reported' | 'guard_checkin';
+  type: string;
   description: string;
   timestamp: string;
-  location: string;
-  status: 'success' | 'warning' | 'error';
+  location?: string;
+  status: string;
   details?: Record<string, any>;
 }
 
 interface RealTimeMonitoringProps {
-  currentLocation: string;
-  onAlertAcknowledge: (alertId: string) => void;
+  currentLocation?: string;
   className?: string;
 }
 
-export function RealTimeMonitoringDashboard({ 
-  currentLocation, 
-  onAlertAcknowledge, 
-  className = "" 
+export function RealTimeMonitoringDashboard({
+  currentLocation = "Main Gate",
+  className = ""
 }: RealTimeMonitoringProps) {
   const { toast } = useToast();
   const { session } = useAuthSession();
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [alerts, setAlerts] = useState<RealTimeAlert[]>([]);
-  const [systemHealth, setSystemHealth] = useState<SystemHealth>({
-    database: 'healthy',
-    authentication: 'healthy',
-    notifications: 'healthy',
-    camera_systems: 'healthy',
-    last_check: new Date().toISOString(),
-    response_time: 45
+  const [liveStats, setLiveStats] = useState<LiveStats>({
+    active_visitors: 0,
+    pending_verifications: 0,
+    today_entries: 0,
+    active_alerts: 0,
+    system_health: "healthy",
+    last_update: new Date().toISOString()
   });
   const [liveActivity, setLiveActivity] = useState<LiveActivity[]>([]);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'reconnecting'>('online');
+  const [acknowledgingAlerts, setAcknowledgingAlerts] = useState<Set<string>>(new Set());
 
-  // Real-time subscription management
-  const startMonitoring = useCallback(async () => {
-    if (isMonitoring) return;
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const statsIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    setIsMonitoring(true);
-    console.log('🔴 Starting real-time monitoring...');
+  // WebSocket connection management
+  const connectWebSocket = useCallback(() => {
+    if (!session?.user?.id) return;
 
     try {
-      // TODO: Replace with WebSocket/SSE connection to FastAPI for real-time monitoring
-      // const ws = new WebSocket('ws://localhost:8000/ws/monitoring');
-      // ws.onmessage = (event) => handleAccessCodeEvent(JSON.parse(event.data));
-      
-      // Placeholder: Simulate real-time events with polling
-      const accessCodeSubscription = setInterval(() => {
-        // Simulate access code events
-        console.log('Simulating access code monitoring...');
-      }, 5000);
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws/monitoring/${session.user.id}`;
 
-      // Subscribe to visitor logs
-      // TODO: Replace with WebSocket/SSE connection to FastAPI for real-time monitoring
-      // const ws = new WebSocket('ws://localhost:8000/ws/monitoring');
-      // ws.onmessage = (event) => handleVisitorLogEvent(JSON.parse(event.data));
-      
-      // Placeholder: Simulate real-time events with polling
-      const visitorLogSubscription = setInterval(() => {
-        // Simulate visitor log events
-        console.log('Simulating visitor log monitoring...');
-      }, 5000);
+      wsRef.current = new WebSocket(wsUrl);
 
-      // Subscribe to incident reports
-      // TODO: Replace with WebSocket/SSE connection to FastAPI for real-time monitoring
-      // const ws = new WebSocket('ws://localhost:8000/ws/monitoring');
-      // ws.onmessage = (event) => handleIncidentEvent(JSON.parse(event.data));
-      
-      // Placeholder: Simulate real-time events with polling
-      const incidentSubscription = setInterval(() => {
-        // Simulate incident events
-        console.log('Simulating incident monitoring...');
-      }, 5000);
+      wsRef.current.onopen = () => {
+        console.log('🔴 WebSocket connected for real-time monitoring');
+        setConnectionStatus('online');
+        setIsMonitoring(true);
+      };
 
-      // System health check interval
-      const healthCheckInterval = setInterval(async () => {
-        await performSystemHealthCheck();
-      }, 30000); // Every 30 seconds
+      wsRef.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          handleWebSocketMessage(data);
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error);
+        }
+      };
 
-      // Cleanup function
-      return () => {
-        accessCodeSubscription.unsubscribe();
-        visitorLogSubscription.unsubscribe();
-        incidentSubscription.unsubscribe();
-        clearInterval(healthCheckInterval);
+      wsRef.current.onclose = () => {
+        console.log('🔴 WebSocket disconnected');
+        setConnectionStatus('offline');
         setIsMonitoring(false);
+
+        // Attempt to reconnect after 5 seconds
+        reconnectTimeoutRef.current = setTimeout(() => {
+          setConnectionStatus('reconnecting');
+          connectWebSocket();
+        }, 5000);
+      };
+
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setConnectionStatus('offline');
       };
 
     } catch (error) {
-      console.error('Failed to start monitoring:', error);
+      console.error('Failed to connect WebSocket:', error);
       setConnectionStatus('offline');
+    }
+  }, [session?.user?.id]);
+
+  const disconnectWebSocket = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+  }, []);
+
+  const handleWebSocketMessage = useCallback((data: any) => {
+    switch (data.type) {
+      case 'new_alert':
+        const newAlert = data.data;
+        setAlerts(prev => [newAlert, ...prev.slice(0, 19)]);
+
+        // Show toast notification for high-priority alerts
+        if (newAlert.severity === 'high' || newAlert.severity === 'critical') {
+          toast({
+            title: newAlert.title,
+            description: newAlert.message,
+            variant: newAlert.severity === 'critical' ? 'destructive' : 'default',
+          });
+        }
+        break;
+
+      case 'alert_acknowledged':
+        const { alert_id } = data.data;
+        setAlerts(prev => prev.map(alert =>
+          alert.id === alert_id ? { ...alert, acknowledged: true } : alert
+        ));
+        break;
+
+      case 'live_stats_update':
+        setLiveStats(data.data);
+        break;
+
+      default:
+        console.log('Unknown WebSocket message type:', data.type);
+    }
+
+    setLastUpdate(new Date());
+  }, [toast]);
+
+  // Fetch initial data and setup monitoring
+  const startMonitoring = useCallback(async () => {
+    if (isMonitoring) return;
+
+    try {
+      // Fetch initial alerts
+      const alertsResponse = await apiClient.get('/realtime/alerts');
+      setAlerts(alertsResponse.data.alerts || []);
+
+      // Fetch initial stats
+      const statsResponse = await apiClient.get('/realtime/stats');
+      setLiveStats(statsResponse.data);
+
+      // Connect WebSocket
+      connectWebSocket();
+
+      // Setup periodic stats refresh as fallback
+      statsIntervalRef.current = setInterval(async () => {
+        try {
+          const statsResponse = await apiClient.get('/realtime/stats');
+          setLiveStats(statsResponse.data);
+        } catch (error) {
+          console.error('Failed to fetch live stats:', error);
+        }
+      }, 30000); // Every 30 seconds
+
+    } catch (error) {
+      console.error('Failed to start monitoring:', error);
       toast({
         title: "Monitoring Error",
         description: "Failed to start real-time monitoring",
         variant: "destructive",
       });
     }
-  }, [isMonitoring]);
+  }, [isMonitoring, connectWebSocket, toast]);
 
-  const handleAccessCodeEvent = (payload: any) => {
-    const { eventType, new: newRecord, old: oldRecord } = payload;
-    
-    if (eventType === 'UPDATE' && newRecord.used_at && !oldRecord.used_at) {
-      // Access code was just used
-      const activity: LiveActivity = {
-        id: `access-${newRecord.id}-${Date.now()}`,
-        type: 'access_granted',
-        description: `Access granted to visitor`,
-        timestamp: new Date().toISOString(),
-        location: currentLocation,
-        status: 'success',
-        details: { accessCodeId: newRecord.id }
-      };
-      
-      setLiveActivity(prev => [activity, ...prev.slice(0, 9)]);
-      
-      // Create success alert
-      const alert: RealTimeAlert = {
-        id: `alert-access-${newRecord.id}`,
-        type: 'access',
-        priority: 'low',
-        title: 'Access Granted',
-        message: `Visitor access verified at ${currentLocation}`,
-        timestamp: new Date().toISOString(),
-        acknowledged: false,
-        location: currentLocation,
-        source: 'access_control'
-      };
-      
-      setAlerts(prev => [alert, ...prev.slice(0, 19)]);
+  const stopMonitoring = useCallback(() => {
+    disconnectWebSocket();
+
+    if (statsIntervalRef.current) {
+      clearInterval(statsIntervalRef.current);
+      statsIntervalRef.current = null;
     }
 
-    setLastUpdate(new Date());
-  };
+    setIsMonitoring(false);
+    setConnectionStatus('offline');
+  }, [disconnectWebSocket]);
 
-  const handleVisitorLogEvent = (payload: any) => {
-    const { new: newRecord } = payload;
-    
-    const activity: LiveActivity = {
-      id: `visitor-${newRecord.id}-${Date.now()}`,
-      type: 'visitor_entry',
-      description: `New visitor entry logged`,
-      timestamp: new Date().toISOString(),
-      location: currentLocation,
-      status: 'success',
-      details: { visitorLogId: newRecord.id }
-    };
-    
-    setLiveActivity(prev => [activity, ...prev.slice(0, 9)]);
+  // Acknowledge alert
+  const acknowledgeAlert = useCallback(async (alertId: string) => {
+    if (acknowledgingAlerts.has(alertId)) return;
 
-    // Create notification alert
-    const alert: RealTimeAlert = {
-      id: `alert-visitor-${newRecord.id}`,
-      type: 'security',
-      priority: 'medium',
-      title: 'Visitor Entry',
-      message: `New visitor logged entry at ${new Date().toLocaleTimeString()}`,
-      timestamp: new Date().toISOString(),
-      acknowledged: false,
-      location: currentLocation,
-      source: 'visitor_tracking'
-    };
-    
-    setAlerts(prev => [alert, ...prev.slice(0, 19)]);
-    setLastUpdate(new Date());
-  };
+    setAcknowledgingAlerts(prev => new Set(prev).add(alertId));
 
-  const handleIncidentEvent = (payload: any) => {
-    const { eventType, new: newRecord } = payload;
-    
-    if (eventType === 'INSERT') {
-      const activity: LiveActivity = {
-        id: `incident-${newRecord.id}-${Date.now()}`,
-        type: 'incident_reported',
-        description: `Security incident reported: ${newRecord.incident_type || 'General'}`,
-        timestamp: new Date().toISOString(),
-        location: newRecord.location || currentLocation,
-        status: 'warning',
-        details: { incidentId: newRecord.id, type: newRecord.incident_type }
-      };
-      
-      setLiveActivity(prev => [activity, ...prev.slice(0, 9)]);
-
-      // Create high-priority alert for incidents
-      const alert: RealTimeAlert = {
-        id: `alert-incident-${newRecord.id}`,
-        type: 'incident',
-        priority: newRecord.severity === 'critical' ? 'critical' : 'high',
-        title: 'Security Incident',
-        message: `${newRecord.incident_type || 'Security incident'} reported at ${newRecord.location || currentLocation}`,
-        timestamp: new Date().toISOString(),
-        acknowledged: false,
-        location: newRecord.location || currentLocation,
-        source: 'incident_management',
-        metadata: { severity: newRecord.severity, type: newRecord.incident_type }
-      };
-      
-      setAlerts(prev => [alert, ...prev.slice(0, 19)]);
-    }
-
-    setLastUpdate(new Date());
-  };
-
-  const performSystemHealthCheck = async () => {
-    const startTime = Date.now();
-    
     try {
-      // Test database connection
-      // TODO: Replace with FastAPI health check endpoint
-      // const response = await apiClient.healthCheck();
-      // const dbError = response.error;
-      const dbError = null; // Placeholder until FastAPI health endpoint is implemented
-
-      // Test authentication
-      const responseTime = Date.now() - startTime;
-      
-      setSystemHealth({
-        database: dbError ? 'degraded' : 'healthy',
-  authentication: session ? 'healthy' : 'degraded',
-        notifications: 'healthy', // Placeholder - would test actual notification service
-        camera_systems: 'healthy', // Placeholder - would test camera connections
-        last_check: new Date().toISOString(),
-        response_time: responseTime
+      await apiClient.post(`/realtime/alerts/${alertId}/acknowledge`, {
+        guard_id: session?.user?.id
       });
 
-      setConnectionStatus('online');
-      
+      setAlerts(prev => prev.map(alert =>
+        alert.id === alertId ? { ...alert, acknowledged: true } : alert
+      ));
+
+      toast({
+        title: "Alert Acknowledged",
+        description: "Alert has been marked as acknowledged",
+      });
     } catch (error) {
-      console.error('System health check failed:', error);
-      setSystemHealth(prev => ({
-        ...prev,
-        database: 'offline',
-        authentication: 'offline',
-        last_check: new Date().toISOString(),
-        response_time: Date.now() - startTime
-      }));
-      setConnectionStatus('offline');
+      console.error('Failed to acknowledge alert:', error);
+      toast({
+        title: "Error",
+        description: "Failed to acknowledge alert",
+        variant: "destructive",
+      });
+    } finally {
+      setAcknowledgingAlerts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(alertId);
+        return newSet;
+      });
     }
-  };
+  }, [session?.user?.id, acknowledgingAlerts, toast]);
 
-  const acknowledgeAlert = (alertId: string) => {
-    setAlerts(prev => 
-      prev.map(alert => 
-        alert.id === alertId 
-          ? { ...alert, acknowledged: true }
-          : alert
-      )
-    );
-    onAlertAcknowledge(alertId);
-  };
+  // Manual refresh
+  const refreshData = useCallback(async () => {
+    try {
+      const [alertsResponse, statsResponse] = await Promise.all([
+        apiClient.get('/realtime/alerts'),
+        apiClient.get('/realtime/stats')
+      ]);
 
-  const getHealthStatusColor = (status: string) => {
-    switch (status) {
-      case 'healthy': return 'text-green-600';
-      case 'degraded': return 'text-yellow-600';
-      case 'offline': return 'text-red-600';
-      default: return 'text-gray-600';
+      setAlerts(alertsResponse.data.alerts || []);
+      setLiveStats(statsResponse.data);
+      setLastUpdate(new Date());
+
+      toast({
+        title: "Data Refreshed",
+        description: "Real-time data has been updated",
+      });
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+      toast({
+        title: "Refresh Error",
+        description: "Failed to refresh monitoring data",
+        variant: "destructive",
+      });
     }
-  };
+  }, [toast]);
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'critical': return 'bg-red-100 border-red-500 text-red-800';
-      case 'high': return 'bg-orange-100 border-orange-500 text-orange-800';
-      case 'medium': return 'bg-yellow-100 border-yellow-500 text-yellow-800';
-      case 'low': return 'bg-blue-100 border-blue-500 text-blue-800';
-      default: return 'bg-gray-100 border-gray-500 text-gray-800';
-    }
-  };
-
-  // Start monitoring on component mount
+  // Setup and cleanup
   useEffect(() => {
-    startMonitoring();
-    return () => {
-      setIsMonitoring(false);
-    };
-  }, [startMonitoring]);
+    if (session?.user?.id) {
+      startMonitoring();
+    }
 
-  const unacknowledgedAlerts = alerts.filter(alert => !alert.acknowledged);
-  const criticalAlerts = unacknowledgedAlerts.filter(alert => alert.priority === 'critical');
+    return () => {
+      stopMonitoring();
+    };
+  }, [session?.user?.id, startMonitoring, stopMonitoring]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      disconnectWebSocket();
+      if (statsIntervalRef.current) {
+        clearInterval(statsIntervalRef.current);
+      }
+    };
+  }, [disconnectWebSocket]);
 
   return (
-    <div className={`space-y-6 ${className}`}>
-      {/* Connection Status Header */}
-      <Card className="border-l-4 border-l-blue-500">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Real-time Monitoring
-              {isMonitoring && (
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-sm text-green-600">Live</span>
-                </div>
-              )}
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              {connectionStatus === 'online' ? (
-                <Wifi className="h-4 w-4 text-green-600" />
-              ) : connectionStatus === 'offline' ? (
-                <WifiOff className="h-4 w-4 text-red-600" />
-              ) : (
-                <RefreshCw className="h-4 w-4 text-yellow-600 animate-spin" />
-              )}
-              <Badge variant={connectionStatus === 'online' ? 'default' : 'destructive'}>
-                {connectionStatus}
-              </Badge>
-            </div>
+    <div className="space-y-6">
+      {/* Header with Connection Status */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Real-Time Monitoring Dashboard</h2>
+          <p className="text-muted-foreground">
+            Live security monitoring and incident management
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          {/* Connection Status Indicator */}
+          <div className="flex items-center gap-2">
+            <div className={`w-3 h-3 rounded-full ${
+              connectionStatus === 'online' ? 'bg-green-500' :
+              connectionStatus === 'reconnecting' ? 'bg-yellow-500 animate-pulse' :
+              'bg-red-500'
+            }`} />
+            <span className="text-sm font-medium capitalize">
+              {connectionStatus === 'reconnecting' ? 'Reconnecting...' : connectionStatus}
+            </span>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-gray-600">
-            Last update: {lastUpdate.toLocaleTimeString()} • Response time: {systemHealth.response_time}ms
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Critical Alerts Banner */}
-      {criticalAlerts.length > 0 && (
-        <Alert className="border-red-200 bg-red-50">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertDescription>
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="font-medium text-red-800">
-                  {criticalAlerts.length} Critical Alert{criticalAlerts.length > 1 ? 's' : ''}
-                </span>
-                <p className="text-sm text-red-600 mt-1">
-                  {criticalAlerts[0]?.message}
-                </p>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => acknowledgeAlert(criticalAlerts[0]?.id)}
-                className="border-red-300 text-red-700 hover:bg-red-100"
-              >
-                Acknowledge
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
+          {/* Control Buttons */}
+          <div className="flex gap-2">
+            <Button
+              variant={isMonitoring ? "destructive" : "default"}
+              size="sm"
+              onClick={isMonitoring ? stopMonitoring : startMonitoring}
+              disabled={connectionStatus === 'reconnecting'}
+            >
+              {isMonitoring ? (
+                <>
+                  <Pause className="w-4 h-4 mr-2" />
+                  Stop Monitoring
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 mr-2" />
+                  Start Monitoring
+                </>
+              )}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshData}
+              disabled={!isMonitoring}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Last Update Indicator */}
+      {lastUpdate && (
+        <div className="text-sm text-muted-foreground">
+          Last updated: {lastUpdate.toLocaleTimeString()}
+        </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* System Health Status */}
+      {/* Live Statistics Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              System Health
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Visitors</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="space-y-3">
-            {Object.entries(systemHealth).map(([key, value]) => {
-              if (key === 'last_check' || key === 'response_time') return null;
-              
-              return (
-                <div key={key} className="flex items-center justify-between">
-                  <span className="text-sm capitalize">
-                    {key.replace('_', ' ')}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      value === 'healthy' ? 'bg-green-500' :
-                      value === 'degraded' ? 'bg-yellow-500' : 'bg-red-500'
-                    }`} />
-                    <span className={`text-sm capitalize ${getHealthStatusColor(value)}`}>
-                      {value}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+          <CardContent>
+            <div className="text-2xl font-bold">{liveStats?.active_visitors || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Currently on premises
+            </p>
           </CardContent>
         </Card>
 
-        {/* Recent Alerts */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Recent Alerts
-              {unacknowledgedAlerts.length > 0 && (
-                <Badge variant="destructive">{unacknowledgedAlerts.length}</Badge>
-              )}
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Access Attempts</CardTitle>
+            <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {alerts.length > 0 ? (
-                alerts.slice(0, 5).map((alert) => (
-                  <div
-                    key={alert.id}
-                    className={`p-3 rounded-lg border-l-4 ${getPriorityColor(alert.priority)} ${
-                      alert.acknowledged ? 'opacity-60' : ''
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-sm">{alert.title}</h4>
-                        <p className="text-xs mt-1">{alert.message}</p>
-                        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                          <Clock className="h-3 w-3" />
-                          {new Date(alert.timestamp).toLocaleTimeString()}
-                          {alert.location && (
-                            <>
-                              <MapPin className="h-3 w-3 ml-2" />
-                              {alert.location}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      {!alert.acknowledged && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => acknowledgeAlert(alert.id)}
-                          className="ml-2 h-6 px-2 text-xs"
-                        >
-                          Ack
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-4 text-gray-500 text-sm">
-                  No recent alerts
-                </div>
-              )}
+            <div className="text-2xl font-bold">{liveStats?.access_attempts_today || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Today
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Alerts</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{liveStats?.active_alerts || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Require attention
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">System Health</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {liveStats?.system_health === 'healthy' ? 'Good' :
+               liveStats?.system_health === 'warning' ? 'Warning' : 'Critical'}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Overall status
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Live Activity Feed */}
+      {/* Active Alerts Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5" />
-            Live Activity Feed
+            <AlertTriangle className="w-5 h-5" />
+            Active Alerts
           </CardTitle>
+          <CardDescription>
+            Real-time security alerts requiring attention
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 max-h-80 overflow-y-auto">
-            {liveActivity.length > 0 ? (
-              liveActivity.map((activity) => (
+          {alerts.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No active alerts</p>
+              <p className="text-sm">All systems operating normally</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {alerts.map((alert) => (
                 <div
-                  key={activity.id}
-                  className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                  key={alert.id}
+                  className={`p-4 border rounded-lg ${
+                    alert.severity === 'critical' ? 'border-red-500 bg-red-50' :
+                    alert.severity === 'high' ? 'border-orange-500 bg-orange-50' :
+                    alert.severity === 'medium' ? 'border-yellow-500 bg-yellow-50' :
+                    'border-blue-500 bg-blue-50'
+                  }`}
                 >
-                  <div className={`w-2 h-2 rounded-full ${
-                    activity.status === 'success' ? 'bg-green-500' :
-                    activity.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-                  }`} />
-                  
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">{activity.description}</div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Clock className="h-3 w-3" />
-                      {new Date(activity.timestamp).toLocaleTimeString()}
-                      <MapPin className="h-3 w-3 ml-2" />
-                      {activity.location}
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-2 py-1 text-xs font-medium rounded ${
+                          alert.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                          alert.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                          alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {alert.severity.toUpperCase()}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(alert.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                      <h4 className="font-medium">{alert.title}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {alert.message}
+                      </p>
+                      {alert.details && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {alert.details}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2 ml-4">
+                      {!alert.acknowledged && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => acknowledgeAlert(alert.id)}
+                          disabled={acknowledgingAlerts.has(alert.id)}
+                        >
+                          {acknowledgingAlerts.has(alert.id) ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
+                          Acknowledge
+                        </Button>
+                      )}
+                      {alert.acknowledged && (
+                        <div className="flex items-center gap-1 text-green-600">
+                          <Check className="w-4 h-4" />
+                          <span className="text-xs">Acknowledged</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  
-                  {activity.type === 'access_granted' && <CheckCircle className="h-4 w-4 text-green-600" />}
-                  {activity.type === 'visitor_entry' && <Users className="h-4 w-4 text-blue-600" />}
-                  {activity.type === 'incident_reported' && <AlertCircle className="h-4 w-4 text-red-600" />}
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <Activity className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>No recent activity</p>
-                <p className="text-sm">Monitoring for security events...</p>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recent Activity Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="w-5 h-5" />
+            Recent Activity
+          </CardTitle>
+          <CardDescription>
+            Latest security events and system activities
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {liveStats?.recent_activities?.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No recent activity</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {liveStats?.recent_activities?.map((activity: LiveActivity, index: number) => (
+                <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
+                  <div className={`w-2 h-2 rounded-full ${
+                    activity.type === 'access_granted' ? 'bg-green-500' :
+                    activity.type === 'access_denied' ? 'bg-red-500' :
+                    activity.type === 'incident' ? 'bg-orange-500' :
+                    'bg-blue-500'
+                  }`} />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{activity.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(activity.timestamp).toLocaleString()}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {activity.type.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
