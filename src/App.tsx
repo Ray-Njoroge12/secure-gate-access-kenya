@@ -32,6 +32,7 @@ import {
   AdvancedAnalytics,
   AdvancedAnalyticsDashboard,
   PredictiveAnalyticsEngine,
+  ComprehensiveAnalytics,
   
   // Enterprise Features
   EnterpriseIntegrationHub,
@@ -216,6 +217,10 @@ const AppContent = () => {
             <Route
               path="/predictive-analytics"
               element={<ProtectedRoute requiredRole="admin"><PredictiveAnalyticsEngine /></ProtectedRoute>}
+            />
+            <Route
+              path="/comprehensive-analytics"
+              element={<ProtectedRoute requiredRole="admin"><ComprehensiveAnalytics /></ProtectedRoute>}
             />
             <Route
               path="/compliance"

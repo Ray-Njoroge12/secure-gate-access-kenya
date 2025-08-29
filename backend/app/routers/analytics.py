@@ -8,6 +8,7 @@ from ..database import get_session
 from ..models import User, Profile, Visitor, AccessCode
 from ..dependencies import UserWithProfile, get_current_user_with_profile, require_guard_minimum
 from ..config import get_settings
+from ..services.analytics import AnalyticsService, PredictiveAnalytics, BIReporting
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 settings = get_settings()
@@ -169,3 +170,106 @@ async def get_security_incidents_analytics(
     """Get security incidents analytics data"""
     # Implementation would go here
     return {"message": "Security incidents analytics endpoint - TODO"}
+
+
+@router.get("/visitor-trends")
+async def get_visitor_trends(
+    days: int = Query(30, description="Number of days to analyze"),
+    current_user: UserWithProfile = Depends(get_current_user_with_profile),
+    session: Session = Depends(get_session)
+):
+    """Get visitor trends and patterns"""
+    analytics_service = AnalyticsService(session)
+    return await analytics_service.get_visitor_trends(days)
+
+
+@router.get("/security-metrics")
+async def get_security_metrics(
+    days: int = Query(30, description="Number of days to analyze"),
+    current_user: UserWithProfile = Depends(get_current_user_with_profile),
+    session: Session = Depends(get_session)
+):
+    """Get security metrics and incident analysis"""
+    analytics_service = AnalyticsService(session)
+    return await analytics_service.get_security_metrics(days)
+
+
+@router.get("/performance-metrics")
+async def get_performance_metrics(
+    days: int = Query(30, description="Number of days to analyze"),
+    current_user: UserWithProfile = Depends(get_current_user_with_profile),
+    session: Session = Depends(get_session)
+):
+    """Get system performance metrics"""
+    analytics_service = AnalyticsService(session)
+    return await analytics_service.get_performance_metrics(days)
+
+
+@router.get("/predict/visitor-load")
+async def predict_visitor_load(
+    days_ahead: int = Query(7, description="Number of days to predict"),
+    current_user: UserWithProfile = Depends(get_current_user_with_profile),
+    session: Session = Depends(get_session)
+):
+    """Predict visitor load for upcoming days"""
+    predictive_analytics = PredictiveAnalytics(session)
+    return await predictive_analytics.predict_visitor_load(days_ahead)
+
+
+@router.get("/predict/security-risks")
+async def identify_security_risks(
+    days: int = Query(30, description="Number of days to analyze"),
+    current_user: UserWithProfile = Depends(get_current_user_with_profile),
+    session: Session = Depends(get_session)
+):
+    """Identify potential security risks"""
+    predictive_analytics = PredictiveAnalytics(session)
+    return await predictive_analytics.identify_security_risks(days)
+
+
+@router.get("/predict/guard-scheduling")
+async def optimize_guard_scheduling(
+    days: int = Query(7, description="Number of days to optimize"),
+    current_user: UserWithProfile = Depends(get_current_user_with_profile),
+    session: Session = Depends(get_session)
+):
+    """Optimize guard scheduling based on predicted patterns"""
+    predictive_analytics = PredictiveAnalytics(session)
+    return await predictive_analytics.optimize_guard_scheduling(days)
+
+
+@router.get("/reports/compliance")
+async def generate_compliance_report(
+    report_type: str = Query("monthly", description="Report type: daily, weekly, monthly, quarterly"),
+    current_user: UserWithProfile = Depends(get_current_user_with_profile),
+    session: Session = Depends(get_session)
+):
+    """Generate compliance report"""
+    bi_reporting = BIReporting(session)
+    return await bi_reporting.generate_compliance_report(report_type)
+
+
+@router.get("/reports/executive-dashboard")
+async def create_executive_dashboard(
+    current_user: UserWithProfile = Depends(get_current_user_with_profile),
+    session: Session = Depends(get_session)
+):
+    """Create executive dashboard with key metrics"""
+    bi_reporting = BIReporting(session)
+    return await bi_reporting.create_executive_dashboard()
+
+
+@router.post("/events/track")
+async def track_analytics_event(
+    event_type: str = Query(..., description="Type of event to track"),
+    event_data: dict = None,
+    current_user: UserWithProfile = Depends(get_current_user_with_profile),
+    session: Session = Depends(get_session)
+):
+    """Track analytics event"""
+    analytics_service = AnalyticsService(session)
+    return await analytics_service.track_event(
+        event_type=event_type,
+        user_id=current_user.user.id,
+        event_data=event_data or {}
+    )

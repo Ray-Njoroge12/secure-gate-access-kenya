@@ -1,5 +1,3 @@
-// import { supabase } from "@/integrations/supabase/client"; // TODO: Remove supabase dependency
-
 // Simple encryption functions (for testing - should be enhanced in production)
 function simpleEncrypt(text: string): string {
   return btoa(unescape(encodeURIComponent(text)));

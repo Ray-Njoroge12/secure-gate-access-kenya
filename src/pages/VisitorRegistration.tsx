@@ -13,13 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-// import { supabase } from "@/integrations/supabase/client"; // TODO: Remove supabase dependency
 import { apiClient } from "@/lib/apiClient";
-import { User, IdCard, Phone, CheckCircle, Copy, QrCode } from "lucide-react";
+import { User, IdCard, Phone, CheckCircle, Copy, QrCode, Camera, Upload, Check, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { QRCodeGenerator } from "@/components/QRCodeGenerator";
+import { motion, AnimatePresence } from "framer-motion";
+import { Progress } from "@/components/ui/progress";
 
 export function VisitorRegistration() {
+  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     fullName: "",
     idNumber: "",
@@ -28,6 +30,8 @@ export function VisitorRegistration() {
     consent: false,
     photo: null as File | null,
   });
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [invitationToken, setInvitationToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState<{
@@ -88,6 +92,69 @@ export function VisitorRegistration() {
         variant: "destructive",
       });
       setTimeout(() => navigate("/"), 3000);
+    }
+  };
+
+  const validateStep = (step: number): boolean => {
+    const errors: Record<string, string> = {};
+
+    switch (step) {
+      case 1:
+        if (!formData.fullName.trim()) {
+          errors.fullName = "Full name is required";
+        }
+        if (!formData.idNumber.trim()) {
+          errors.idNumber = "ID number is required";
+        }
+        break;
+      case 2:
+        if (!formData.phoneNumber.trim()) {
+          errors.phoneNumber = "Phone number is required";
+        } else if (!/^(\+254|0)[17]\d{8}$/.test(formData.phoneNumber)) {
+          errors.phoneNumber = "Please enter a valid Kenyan phone number";
+        }
+        if (!formData.visitorEmail.trim()) {
+          errors.visitorEmail = "Email address is required";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.visitorEmail)) {
+          errors.visitorEmail = "Please enter a valid email address";
+        }
+        break;
+      case 3:
+        if (!formData.photo) {
+          errors.photo = "Photo is required for security verification";
+        }
+        if (!formData.consent) {
+          errors.consent = "You must agree to the terms to proceed";
+        }
+        break;
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const nextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, 3));
+    }
+  };
+
+  const prevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setValidationErrors({});
+  };
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setFormData(prev => ({ ...prev, photo: file }));
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPhotoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -263,152 +330,272 @@ export function VisitorRegistration() {
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                  <div className="sm:col-span-6">
-                    <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">
-                      Full Name
-                    </Label>
-                    <div className="mt-1 relative rounded-md shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <User className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <Input
-                        id="fullName"
-                        value={formData.fullName}
-                        onChange={(e) =>
-                          setFormData({ ...formData, fullName: e.target.value })
-                        }
-                        required
-                        className="pl-10 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-                        placeholder="Enter your full name"
-                      />
-                    </div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 20 }}
+                transition={{ duration: 0.5 }}
+                className="space-y-6"
+              >
+                {/* Progress Indicator */}
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm font-medium text-gray-600">
+                    <span className={currentStep >= 1 ? "text-indigo-600" : ""}>Personal Info</span>
+                    <span className={currentStep >= 2 ? "text-indigo-600" : ""}>Contact Details</span>
+                    <span className={currentStep >= 3 ? "text-indigo-600" : ""}>Photo & Consent</span>
                   </div>
-
-                  <div className="sm:col-span-6">
-                    <Label htmlFor="idNumber" className="text-sm font-medium text-gray-700">
-                      National ID Number
-                    </Label>
-                    <div className="mt-1 relative rounded-md shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <IdCard className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <Input
-                        id="idNumber"
-                        value={formData.idNumber}
-                        onChange={(e) =>
-                          setFormData({ ...formData, idNumber: e.target.value })
-                        }
-                        required
-                        className="pl-10 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-                        placeholder="Enter your ID number"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-6">
-                    <Label htmlFor="phoneNumber" className="text-sm font-medium text-gray-700">
-                      Phone Number
-                    </Label>
-                    <div className="mt-1 relative rounded-md shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Phone className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <Input
-                        id="phoneNumber"
-                        type="tel"
-                        value={formData.phoneNumber}
-                        onChange={(e) =>
-                          setFormData({ ...formData, phoneNumber: e.target.value })
-                        }
-                        required
-                        className="pl-10 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-                        placeholder="+254712345678"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-6">
-                    <Label htmlFor="visitorEmail" className="text-sm font-medium text-gray-700">
-                      Email Address
-                    </Label>
-                    <div className="mt-1 relative rounded-md shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <User className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <Input
-                        id="visitorEmail"
-                        type="email"
-                        value={formData.visitorEmail}
-                        onChange={(e) =>
-                          setFormData({ ...formData, visitorEmail: e.target.value })
-                        }
-                        required
-                        className="pl-10 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-                        placeholder="your.email@example.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="sm:col-span-6">
-                    <Label htmlFor="photo" className="text-sm font-medium text-gray-700">
-                      Upload Photo (Selfie)
-                    </Label>
-                    <div className="mt-1 relative rounded-md shadow-sm">
-                      <Input
-                        id="photo"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] || null })}
-                        required
-                        className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">
-                      Please upload a clear photo of yourself for security verification.
-                    </p>
+                  <Progress value={(currentStep / 3) * 100} className="h-2" />
+                  <div className="flex justify-between">
+                    {[1, 2, 3].map((step) => (
+                      <motion.div
+                        key={step}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                          step < currentStep
+                            ? "bg-green-500 text-white"
+                            : step === currentStep
+                            ? "bg-indigo-600 text-white"
+                            : "bg-gray-200 text-gray-600"
+                        }`}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        {step < currentStep ? <Check className="w-4 h-4" /> : step}
+                      </motion.div>
+                    ))}
                   </div>
                 </div>
 
-                <div className="flex items-start">
-                  <Checkbox
-                    id="consent"
-                    checked={formData.consent}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, consent: !!checked })
-                    }
-                    className="mt-1"
-                  />
-                  <Label htmlFor="consent" className="ml-3 block text-sm text-gray-700">
-                    I consent to the processing of my personal data for security and access control purposes. 
-                    My data will be encrypted and handled according to GDPR regulations.
-                  </Label>
-                </div>
+                {/* Step Content */}
+                <AnimatePresence mode="wait">
+                  <motion.form
+                    key={currentStep}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3 }}
+                    onSubmit={currentStep === 3 ? handleSubmit : (e) => { e.preventDefault(); nextStep(); }}
+                    className="space-y-6"
+                  >
+                    {currentStep === 1 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="space-y-4"
+                      >
+                        <div>
+                          <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">
+                            Full Name
+                          </Label>
+                          <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <User className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <Input
+                              id="fullName"
+                              value={formData.fullName}
+                              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                              className={`pl-10 ${validationErrors.fullName ? "border-red-500" : "border-gray-300 focus:border-indigo-500"}`}
+                              placeholder="Enter your full name"
+                            />
+                            {validationErrors.fullName && (
+                              <p className="mt-1 text-sm text-red-600">{validationErrors.fullName}</p>
+                            )}
+                          </div>
+                        </div>
 
-                <Button
-                  type="submit"
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={isLoading || !invitationToken}
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Processing Registration...
-                    </>
-                  ) : (
-                    "Complete Registration"
-                  )}
-                </Button>
+                        <div>
+                          <Label htmlFor="idNumber" className="text-sm font-medium text-gray-700">
+                            National ID Number
+                          </Label>
+                          <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <IdCard className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <Input
+                              id="idNumber"
+                              value={formData.idNumber}
+                              onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
+                              className={`pl-10 ${validationErrors.idNumber ? "border-red-500" : "border-gray-300 focus:border-indigo-500"}`}
+                              placeholder="Enter your ID number"
+                            />
+                            {validationErrors.idNumber && (
+                              <p className="mt-1 text-sm text-red-600">{validationErrors.idNumber}</p>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
 
-                {!invitationToken && (
-                  <Alert className="border-red-200 bg-red-50">
-                    <AlertDescription className="text-red-800">
-                      Invalid invitation link. Please ensure you're using the correct registration URL.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </form>
+                    {currentStep === 2 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="space-y-4"
+                      >
+                        <div>
+                          <Label htmlFor="phoneNumber" className="text-sm font-medium text-gray-700">
+                            Phone Number
+                          </Label>
+                          <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <Phone className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <Input
+                              id="phoneNumber"
+                              type="tel"
+                              value={formData.phoneNumber}
+                              onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                              className={`pl-10 ${validationErrors.phoneNumber ? "border-red-500" : "border-gray-300 focus:border-indigo-500"}`}
+                              placeholder="+254712345678"
+                            />
+                            {validationErrors.phoneNumber && (
+                              <p className="mt-1 text-sm text-red-600">{validationErrors.phoneNumber}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="visitorEmail" className="text-sm font-medium text-gray-700">
+                            Email Address
+                          </Label>
+                          <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <User className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <Input
+                              id="visitorEmail"
+                              type="email"
+                              value={formData.visitorEmail}
+                              onChange={(e) => setFormData({ ...formData, visitorEmail: e.target.value })}
+                              className={`pl-10 ${validationErrors.visitorEmail ? "border-red-500" : "border-gray-300 focus:border-indigo-500"}`}
+                              placeholder="your.email@example.com"
+                            />
+                            {validationErrors.visitorEmail && (
+                              <p className="mt-1 text-sm text-red-600">{validationErrors.visitorEmail}</p>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {currentStep === 3 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="space-y-4"
+                      >
+                        <div>
+                          <Label htmlFor="photo" className="text-sm font-medium text-gray-700">
+                            Upload Photo (Selfie)
+                          </Label>
+                          <div className="mt-1">
+                            <motion.div
+                              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                                photoPreview ? "border-green-300 bg-green-50" : "border-gray-300 hover:border-gray-400"
+                              }`}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              {photoPreview ? (
+                                <div className="space-y-4">
+                                  <img
+                                    src={photoPreview}
+                                    alt="Preview"
+                                    className="mx-auto h-32 w-32 object-cover rounded-lg border"
+                                  />
+                                  <div className="flex items-center justify-center space-x-2">
+                                    <Check className="h-5 w-5 text-green-500" />
+                                    <span className="text-sm text-green-700">Photo uploaded successfully</span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="space-y-4">
+                                  <Camera className="mx-auto h-12 w-12 text-gray-400" />
+                                  <div>
+                                    <p className="text-sm text-gray-600">
+                                      Click to upload or drag and drop your photo
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      PNG, JPG up to 10MB
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                              <Input
+                                id="photo"
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoUpload}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              />
+                            </motion.div>
+                            {validationErrors.photo && (
+                              <p className="mt-1 text-sm text-red-600">{validationErrors.photo}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-start space-x-3">
+                          <Checkbox
+                            id="consent"
+                            checked={formData.consent}
+                            onCheckedChange={(checked) => setFormData({ ...formData, consent: !!checked })}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <Label htmlFor="consent" className="text-sm text-gray-700">
+                              I consent to the processing of my personal data for security and access control purposes.
+                              My data will be encrypted and handled according to GDPR regulations.
+                            </Label>
+                            {validationErrors.consent && (
+                              <p className="mt-1 text-sm text-red-600">{validationErrors.consent}</p>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Navigation Buttons */}
+                    <div className="flex justify-between pt-6">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={prevStep}
+                        disabled={currentStep === 1}
+                        className="flex items-center space-x-2"
+                      >
+                        <X className="h-4 w-4" />
+                        <span>Previous</span>
+                      </Button>
+
+                      <Button
+                        type="submit"
+                        disabled={isLoading || !invitationToken}
+                        className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700"
+                      >
+                        {isLoading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                            <span>Processing...</span>
+                          </>
+                        ) : currentStep === 3 ? (
+                          <>
+                            <span>Complete Registration</span>
+                            <Check className="h-4 w-4" />
+                          </>
+                        ) : (
+                          <>
+                            <span>Next</span>
+                            <Upload className="h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </motion.form>
+                </AnimatePresence>
+              </motion.div>
             )}
           </CardContent>
         </Card>

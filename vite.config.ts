@@ -30,10 +30,10 @@ export default defineConfig(({ mode }) => ({
               return 'vendor';
             }
             
-            // Supabase related
-            if (id.includes('@supabase') || id.includes('supabase')) {
-              return 'supabase';
-            }
+            // Supabase related (removed - migrated to FastAPI)
+            // if (id.includes('@supabase') || id.includes('supabase')) {
+            //   return 'supabase';
+            // }
             
             // Charts and visualization libraries
             if (id.includes('recharts') || id.includes('d3') || id.includes('chart')) {

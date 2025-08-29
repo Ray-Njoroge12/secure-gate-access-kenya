@@ -3,9 +3,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from ..database import get_session
-from ..models import User, Profile
-from ..config import get_settings
+from .database import get_session
+from .models import User, Profile
+from .config import get_settings
 
 settings = get_settings()
 security = HTTPBearer(auto_error=False)
@@ -17,17 +17,16 @@ ROLE_HIERARCHY = {
     "admin": 3
 }
 
-class UserWithProfile:
+from pydantic import BaseModel
+
+class UserWithProfile(BaseModel):
     """Enhanced user object that includes profile information"""
-    def __init__(self, user: User, profile: Optional[Profile]):
-        self.user = user
-        self.profile = profile
-        self.id = user.id
-        self.email = user.email
-        self.role = profile.role if profile else "resident"
-        self.full_name = profile.full_name if profile else None
-        self.unit_number = profile.unit_number if profile else None
-        self.phone = profile.phone if profile else None
+    id: str
+    email: str
+    role: str
+    full_name: Optional[str] = None
+    unit_number: Optional[str] = None
+    phone: Optional[str] = None
 
 def get_current_user_with_profile(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -63,7 +62,14 @@ def get_current_user_with_profile(
 
     profile = session.query(Profile).filter(Profile.user_id == user.id).first()
 
-    return UserWithProfile(user, profile)
+    return UserWithProfile(
+        id=user.id,
+        email=user.email,
+        role=profile.role if profile else "resident",
+        full_name=profile.full_name if profile else None,
+        unit_number=profile.unit_number if profile else None,
+        phone=profile.phone if profile else None
+    )
 
 def require_role(required_roles: List[str]):
     """Dependency factory for role-based access control"""
@@ -95,9 +101,9 @@ require_guard_or_admin = require_role(["guard", "admin"])
 require_admin_only = require_role(["admin"])
 require_guard_minimum = require_minimum_role("guard")
 require_admin_minimum = require_minimum_role("admin")
+require_resident_or_above = require_minimum_role("resident")
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), session: Session = Depends(get_session)) -> User:
     """Legacy function for backward compatibility"""
     user_with_profile = get_current_user_with_profile(credentials, session)
-    return user_with_profile.user</content>
-<parameter name="filePath">c:\Users\rayng\Desktop\secure-gate-access-kenya\backend\app\dependencies.py
+    return user_with_profile.user

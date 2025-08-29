@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
-// import { supabase } from "@/integrations/supabase/client"; // TODO: Remove supabase dependency
 
 interface OfflineIncident {
   id: string;

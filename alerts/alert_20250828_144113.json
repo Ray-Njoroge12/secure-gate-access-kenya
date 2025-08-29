@@ -1,0 +1,7 @@
+{
+  "type": "backend_down",
+  "message": "Backend service is error_404",
+  "severity": "critical",
+  "value": "error_404",
+  "timestamp": "2025-08-28T14:41:13.487467"
+}

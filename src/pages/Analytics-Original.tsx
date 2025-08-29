@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import { supabase } from '@/integrations/supabase/client'; // TODO: Remove supabase dependency
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/lib/apiClient';

@@ -12,15 +12,15 @@ This script will apply all RLS migrations using psql or provide manual instructi
 
 Set-StrictMode -Version Latest
 
-# Define all RLS migration files
+# Define all RLS migration files (FastAPI/PostgreSQL)
 $MigrationFiles = @(
-    '..\supabase\migrations\20250821_update_profiles_rls.sql',
-    '..\supabase\migrations\20250822_update_access_codes_rls.sql',
-    '..\supabase\migrations\20250823_update_security_tables_rls.sql',
-    '..\supabase\migrations\20250824_update_users_rls.sql',
-    '..\supabase\migrations\20250825_update_api_keys_rls.sql',
-    '..\supabase\migrations\20250826_update_visitor_tables_rls.sql',
-    '..\supabase\migrations\20250827_update_remaining_tables_rls.sql'
+    '..\backend\migrations\20250821_update_profiles_rls.sql',
+    '..\backend\migrations\20250822_update_access_codes_rls.sql',
+    '..\backend\migrations\20250823_update_security_tables_rls.sql',
+    '..\backend\migrations\20250824_update_users_rls.sql',
+    '..\backend\migrations\20250825_update_api_keys_rls.sql',
+    '..\backend\migrations\20250826_update_visitor_tables_rls.sql',
+    '..\backend\migrations\20250827_update_remaining_tables_rls.sql'
 )
 
 $dbUrl = $env:DATABASE_URL
@@ -132,7 +132,7 @@ if ($successCount -eq $totalMigrations) {
     Write-Host ""
     Write-Host "Manual Application Instructions:"
     Write-Host "1. Connect to your PostgreSQL database using psql or a GUI tool"
-    Write-Host "2. Run each SQL file in the supabase/migrations/ directory"
+    Write-Host "2. Run each SQL file in the backend/migrations/ directory"
     Write-Host "3. Files to apply:"
     foreach ($file in $MigrationFiles) {
         Write-Host "   - $file"

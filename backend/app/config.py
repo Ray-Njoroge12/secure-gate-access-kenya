@@ -28,6 +28,20 @@ class Settings(BaseSettings):
         description="Secret key for JWT token signing"
     )
 
+    # Redis Configuration
+    REDIS_URL: str = Field(
+        default="redis://localhost:6379",
+        description="Redis connection URL"
+    )
+    REDIS_CACHE_TTL: int = Field(
+        default=3600,
+        description="Default cache TTL in seconds"
+    )
+    REDIS_MAX_CONNECTIONS: int = Field(
+        default=20,
+        description="Maximum Redis connections"
+    )
+
 
 
 @lru_cache

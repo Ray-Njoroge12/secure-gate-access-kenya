@@ -13,3 +13,8 @@ pytest-asyncio==1.1.0
 pydantic-settings==2.4.0
 SQLAlchemy==2.0.32
 passlib[bcrypt]==1.7.4
+prometheus-client==0.21.0
+slowapi==0.1.9
+psutil==6.0.0
+redis==5.0.1
+Pillow==10.2.0

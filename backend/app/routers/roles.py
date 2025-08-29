@@ -4,7 +4,7 @@ from typing import List, Optional
 from pydantic import BaseModel, EmailStr
 from ..database import get_session
 from ..models import Profile
-from .dependencies import UserWithProfile, require_admin_only
+from ..dependencies import UserWithProfile, require_admin_only
 
 router = APIRouter()
 
@@ -157,5 +157,4 @@ def get_role_description(role: str) -> str:
         "guard": "Security guard access - verify access codes and monitor security",
         "admin": "Administrator access - full system management and user administration"
     }
-    return descriptions.get(role, "Unknown role")</content>
-<parameter name="filePath">c:\Users\rayng\Desktop\secure-gate-access-kenya\backend\app\routers\roles.py
+    return descriptions.get(role, "Unknown role")
