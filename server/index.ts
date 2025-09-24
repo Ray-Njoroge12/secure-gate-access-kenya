@@ -10,6 +10,7 @@ import { router as accessLogRouter } from './routes/access-logs';
 import { router as visitorsRouter } from './routes/visitors';
 import { router as incidentsRouter } from './routes/incidents';
 import { router as analyticsRouter } from './routes/analytics';
+import { router as emailRouter } from './routes/email';
 
 const app = express();
 app.use(cors());
@@ -38,6 +39,7 @@ app.use('/api/2fa', twofaRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/access-logs', accessLogRouter);
 app.use('/api/visitors', visitorsRouter);
+app.use('/api/email', emailRouter);
 
 const port = process.env.PORT || 4001;
 if (process.env.RUN_SERVER !== 'false') {
